@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using TMPro;
 using Unity.Services.Authentication;
+using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
@@ -13,11 +14,23 @@ public class LobbyCanvasFunction : MonoBehaviour
     [SerializeField] private TMP_InputField lobbyNameInputField;
     [SerializeField] private TMP_InputField lobbyJoinCodeInputField;
     [SerializeField] private GameObject[] allPanels;
-
+    
     private Lobby currentLobby;
 
     private async void Awake()
     {
+        try
+        {
+            if(UnityServices.State != ServicesInitializationState.Initialized)
+            {
+                await UnityServices.InitializeAsync();
+                Debug.Log("Unity Services initialized");
+            }
+        }catch(Exception e)
+        {
+            Debug.LogError("Failed to initialize Unity Services: " + e.Message);
+            return;
+        }
         // Sign in anonymously if not already signed in
         if (!AuthenticationService.Instance.IsSignedIn)
         {
@@ -64,7 +77,7 @@ public class LobbyCanvasFunction : MonoBehaviour
     /// <summary>
     /// Creates a lobby with the specified name and max players
     /// </summary>
-    public async void CreateLobby()
+    public async void CreateLobby(GameObject currentLobbyInfoPanel)
     {
         if (lobbyNameInputField == null || string.IsNullOrEmpty(lobbyNameInputField.text))
         {
@@ -82,6 +95,8 @@ public class LobbyCanvasFunction : MonoBehaviour
             };
 
             currentLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayersInALobby, options);
+            LobbyFeatures.SetCurrentLobby(currentLobby);
+            ActivatePanel(currentLobbyInfoPanel);
             Debug.Log($"Lobby created with name: {lobbyName}, Code: {currentLobby.LobbyCode}");
         }
         catch (Exception e)
@@ -93,7 +108,7 @@ public class LobbyCanvasFunction : MonoBehaviour
     /// <summary>
     /// Joins a lobby using the provided lobby code
     /// </summary>
-    public async void JoinLobbyByCode()
+    public async void JoinLobbyByCode(GameObject currentLobbyInfoPanel)
     {
         if (lobbyJoinCodeInputField == null || string.IsNullOrEmpty(lobbyJoinCodeInputField.text))
         {
@@ -105,7 +120,11 @@ public class LobbyCanvasFunction : MonoBehaviour
         {
             string lobbyCode = lobbyJoinCodeInputField.text;
             JoinLobbyByCodeOptions options = new JoinLobbyByCodeOptions();
+           
+
             currentLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, options);
+            LobbyFeatures.SetCurrentLobby(currentLobby);
+            ActivatePanel(currentLobbyInfoPanel);
             Debug.Log($"Successfully joined lobby with code: {lobbyCode}");
         }
         catch (Exception e)
@@ -113,4 +132,6 @@ public class LobbyCanvasFunction : MonoBehaviour
             Debug.LogError("Failed to join lobby: " + e.Message);
         }
     }
+
+   
 }

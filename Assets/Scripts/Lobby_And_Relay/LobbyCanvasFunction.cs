@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using TMPro;
 using Unity.Services.Authentication;
@@ -14,30 +14,49 @@ public class LobbyCanvasFunction : MonoBehaviour
     [SerializeField] private TMP_InputField lobbyNameInputField;
     [SerializeField] private TMP_InputField lobbyJoinCodeInputField;
     [SerializeField] private GameObject[] allPanels;
-    
+    [SerializeField] private TextMeshProUGUI debugText;
     private Lobby currentLobby;
 
     private async void Awake()
     {
         try
         {
-            if(UnityServices.State != ServicesInitializationState.Initialized)
+            if (UnityServices.State != ServicesInitializationState.Initialized)
             {
-                await UnityServices.InitializeAsync();
-                Debug.Log("Unity Services initialized");
+                // ── CHANGE 1: Read -profile arg before initializing ──────────────
+                string profile = "Player1"; // default for Unity Editor
+
+                var args = System.Environment.GetCommandLineArgs();
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i] == "-profile" && i + 1 < args.Length)
+                    {
+                        profile = args[i + 1];
+                        break;
+                    }
+                }
+
+                // ── CHANGE 2: Pass profile into InitializationOptions ────────────
+                var options = new InitializationOptions();
+                options.SetProfile(profile);
+
+                await UnityServices.InitializeAsync(options);   // ← was InitializeAsync()
+                Debug.Log($"Unity Services initialized | Profile: {profile}");
             }
-        }catch(Exception e)
+        }
+        catch (Exception e)
         {
             Debug.LogError("Failed to initialize Unity Services: " + e.Message);
             return;
         }
-        // Sign in anonymously if not already signed in
+
         if (!AuthenticationService.Instance.IsSignedIn)
         {
             try
             {
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
-                Debug.Log("Player signed in anonymously");
+                // ── CHANGE 3: Log the actual PlayerId so you can verify ──────────
+                Debug.Log($"Player signed in anonymously | PlayerId: {AuthenticationService.Instance.PlayerId}");
             }
             catch (Exception e)
             {
@@ -46,19 +65,11 @@ public class LobbyCanvasFunction : MonoBehaviour
         }
         else
         {
-            Debug.Log("Player already signed in");
+            Debug.Log($"Player already signed in | PlayerId: {AuthenticationService.Instance.PlayerId}");
         }
     }
 
-    void Start()
-    {
-        
-    }
 
-    void Update()
-    {
-        
-    }
 
     public void ActivatePanel(GameObject panel)
     {
@@ -102,6 +113,7 @@ public class LobbyCanvasFunction : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError("Failed to create lobby: " + e.Message);
+            debugText.text = e.Message;
         }
     }
 
@@ -130,6 +142,30 @@ public class LobbyCanvasFunction : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError("Failed to join lobby: " + e.Message);
+            debugText.text = e.Message;
+        }
+    }
+
+    public async void LeaveLobbyAsync(GameObject FirstPanel)
+    {
+        if(LobbyFeatures.GetCurrentLobby() == null)
+        {
+            debugText.text = "No current lobby active";
+            return;
+        }
+        try
+        {
+            string playerId = AuthenticationService.Instance.PlayerId;
+            await LobbyService.Instance.RemovePlayerAsync(LobbyFeatures.GetCurrentLobby().Id, playerId);
+            LobbyFeatures.SetCurrentLobby(null);
+            currentLobby = null;
+            ActivatePanel(FirstPanel);
+
+        }
+        catch (LobbyServiceException e) {
+            Debug.LogError($"Leave lobby error : {e.Message}");
+            debugText.text = e.Message; 
+
         }
     }
 

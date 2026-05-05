@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using TMPro;
+using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class LobbyFeatures : MonoBehaviour
@@ -10,6 +12,10 @@ public class LobbyFeatures : MonoBehaviour
     [SerializeField] private TextMeshProUGUI lobbyJoinCodeForDisplayText;
     [SerializeField] private GameObject playerInfoPrefab;
     [SerializeField] private RectTransform verticalLayoutGroupForPlayerInfo;
+    [SerializeField] private GameObject DeleteLobbyBtn;
+    [SerializeField] private LobbyCanvasFunction lobbyFunctions;
+    [SerializeField] private TextMeshProUGUI debugText;
+    [SerializeField] private GameObject FirstPanel;
 
     private static Lobby currentLobby;
     private ILobbyEvents _lobbyEvents;                    // ← store reference for unsubscribing
@@ -65,6 +71,8 @@ public class LobbyFeatures : MonoBehaviour
     private void OnLobbyDeleted()
     {
         Debug.Log("Lobby deleted.");
+        debugText.text = "Your lobby was deleted";
+        lobbyFunctions.ActivatePanel(FirstPanel);
         // e.g. return to main menu
     }
 
@@ -82,6 +90,8 @@ public class LobbyFeatures : MonoBehaviour
     private void OnKickedFromLobby()
     {
         Debug.Log("Kicked from lobby.");
+        debugText.text = "Either your lobby was deleted or you were kicked out";
+        lobbyFunctions.ActivatePanel(FirstPanel);
         // e.g. return to main menu
     }
 
@@ -97,7 +107,7 @@ public class LobbyFeatures : MonoBehaviour
 
         lobbyNameForDisplayText.text = currentLobby.Name;
         lobbyJoinCodeForDisplayText.text = currentLobby.LobbyCode;
-
+        DeleteLobbyBtn.SetActive(IsHost());
         RefreshPlayerList();
     }
 
@@ -120,4 +130,11 @@ public class LobbyFeatures : MonoBehaviour
     // ─── Static accessors ──────────────────────────────────────────────────────
     public static Lobby GetCurrentLobby() => currentLobby;
     public static void SetCurrentLobby(Lobby newCurrentLobby) => currentLobby = newCurrentLobby;
+
+    public static bool IsHost()
+    {
+        if(currentLobby == null) return false;
+        string playerId = AuthenticationService.Instance.PlayerId;
+        return playerId == currentLobby.HostId;
+    }
 }

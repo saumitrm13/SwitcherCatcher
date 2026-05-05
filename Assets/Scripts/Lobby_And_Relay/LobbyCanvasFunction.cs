@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using TMPro;
+using Unity.Netcode;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Lobbies;
@@ -15,6 +16,7 @@ public class LobbyCanvasFunction : MonoBehaviour
     [SerializeField] private TMP_InputField lobbyJoinCodeInputField;
     [SerializeField] private GameObject[] allPanels;
     [SerializeField] private TextMeshProUGUI debugText;
+    
     private Lobby currentLobby;
 
     private async void Awake()
@@ -174,5 +176,30 @@ public class LobbyCanvasFunction : MonoBehaviour
         }
     }
 
+    public async void DeleteLobbyAsync(GameObject FirstPanel)
+    {
+        if (LobbyFeatures.IsHost())
+        {
+            try
+            {
+                await LobbyService.Instance.DeleteLobbyAsync(LobbyFeatures.GetCurrentLobby().Id);
+                LobbyFeatures.SetCurrentLobby(null);
+                currentLobby = null;
+                debugText.text = "Lobby deleted successfully";
+                if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+                {
+                    NetworkManager.Singleton.Shutdown();
+                }
+                ActivatePanel(FirstPanel);
+            }
+            catch (LobbyServiceException e) { 
+                debugText.text = e.Message;
+            }
+        }
+        else
+        {
+            debugText.text = "Only host can delete the lobby!";
+        }
+    }
    
 }

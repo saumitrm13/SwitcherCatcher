@@ -5,6 +5,8 @@ using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem.HID;
+using UnityEngine.UI;
 
 public class LobbyFeatures : MonoBehaviour
 {
@@ -124,7 +126,21 @@ public class LobbyFeatures : MonoBehaviour
             playerInfo.transform.Find("PlayerNameText").GetComponent<TextMeshProUGUI>().text
                 = player.Data != null && player.Data.ContainsKey("PlayerName")
                 ? player.Data["PlayerName"].Value : "Unknown";
+            Button kickOutBtn = playerInfo.transform.Find("KickOutBtn")?.GetComponent<Button>();
+            if(kickOutBtn != null)
+            {
+                if (!IsHost())
+                {
+                    kickOutBtn.gameObject.SetActive(false);
+                }
+                else
+                {
+                    kickOutBtn.onClick.AddListener(() => { KickOutPlayerAsync(player.Id); } );
+                }
+            }
         }
+
+        
     }
 
     // ─── Static accessors ──────────────────────────────────────────────────────
@@ -136,5 +152,25 @@ public class LobbyFeatures : MonoBehaviour
         if(currentLobby == null) return false;
         string playerId = AuthenticationService.Instance.PlayerId;
         return playerId == currentLobby.HostId;
+    }
+
+    async void KickOutPlayerAsync(string playerId)
+    {
+        if (IsHost())
+        {
+            try
+            {
+                await LobbyService.Instance.RemovePlayerAsync(currentLobby.Id, playerId);
+                debugText.text = "Kicked out player";
+            }
+            catch(LobbyServiceException e) 
+            {
+                debugText.text = e.Message;
+            }
+        }
+        else
+        {
+            debugText.text = "Only host can kick players out";
+        }
     }
 }

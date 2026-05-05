@@ -147,8 +147,11 @@ public class LobbyCanvasFunction : MonoBehaviour
     }
 
     public async void LeaveLobbyAsync(GameObject FirstPanel)
-    {
-        if(LobbyFeatures.GetCurrentLobby() == null)
+    {   
+        debugText.text = "Attempting to leave lobby...";
+        Debug.Log("Attempting to leave lobby");
+
+        if (LobbyFeatures.GetCurrentLobby() == null)
         {
             debugText.text = "No current lobby active";
             return;
@@ -160,11 +163,13 @@ public class LobbyCanvasFunction : MonoBehaviour
             LobbyFeatures.SetCurrentLobby(null);
             currentLobby = null;
             ActivatePanel(FirstPanel);
+            debugText.text = "Left lobby successfully";
 
         }
-        catch (LobbyServiceException e) {
+        catch (LobbyServiceException e)
+        {
             Debug.LogError($"Leave lobby error : {e.Message}");
-            debugText.text = e.Message; 
+            debugText.text = e.Message;
 
         }
     }

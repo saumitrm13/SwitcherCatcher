@@ -15,7 +15,7 @@ public class LobbyCanvasFunction : MonoBehaviour
     [SerializeField] private TMP_InputField lobbyNameInputField;
     [SerializeField] private TMP_InputField lobbyJoinCodeInputField;
     [SerializeField] private GameObject[] allPanels;
-    [SerializeField] private TextMeshProUGUI debugText;
+    public static TextMeshProUGUI debugText;
     
     private Lobby currentLobby;
 

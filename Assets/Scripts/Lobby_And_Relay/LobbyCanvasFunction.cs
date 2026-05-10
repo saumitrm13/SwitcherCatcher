@@ -1,7 +1,9 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using TMPro;
+using Unity.Netcode;
 using Unity.Services.Authentication;
+using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
@@ -10,21 +12,54 @@ using UnityEngine.UI;
 public class LobbyCanvasFunction : MonoBehaviour
 {
     [SerializeField] private int maxPlayersInALobby = 4;
-    [SerializeField] private TMP_InputField lobbyNameInputField;
+    [SerializeField] private TMP_InputField privateLobbyNameInputField;
+    [SerializeField] private TMP_InputField publicLobbyNameInputField;
     [SerializeField] private TMP_InputField lobbyJoinCodeInputField;
     [SerializeField] private GameObject[] allPanels;
-
+    public TextMeshProUGUI debugText;
+    
     private Lobby currentLobby;
 
     private async void Awake()
     {
-        // Sign in anonymously if not already signed in
+        try
+        {
+            if (UnityServices.State != ServicesInitializationState.Initialized)
+            {
+                // ── CHANGE 1: Read -profile arg before initializing ──────────────
+                string profile = "Player1"; // default for Unity Editor
+
+                var args = System.Environment.GetCommandLineArgs();
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i] == "-profile" && i + 1 < args.Length)
+                    {
+                        profile = args[i + 1];
+                        break;
+                    }
+                }
+
+                // ── CHANGE 2: Pass profile into InitializationOptions ────────────
+                var options = new InitializationOptions();
+                options.SetProfile(profile);
+
+                await UnityServices.InitializeAsync(options);   // ← was InitializeAsync()
+                Debug.Log($"Unity Services initialized | Profile: {profile}");
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Failed to initialize Unity Services: " + e.Message);
+            return;
+        }
+
         if (!AuthenticationService.Instance.IsSignedIn)
         {
             try
             {
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
-                Debug.Log("Player signed in anonymously");
+                // ── CHANGE 3: Log the actual PlayerId so you can verify ──────────
+                Debug.Log($"Player signed in anonymously | PlayerId: {AuthenticationService.Instance.PlayerId}");
             }
             catch (Exception e)
             {
@@ -33,19 +68,11 @@ public class LobbyCanvasFunction : MonoBehaviour
         }
         else
         {
-            Debug.Log("Player already signed in");
+            Debug.Log($"Player already signed in | PlayerId: {AuthenticationService.Instance.PlayerId}");
         }
     }
 
-    void Start()
-    {
-        
-    }
 
-    void Update()
-    {
-        
-    }
 
     public void ActivatePanel(GameObject panel)
     {
@@ -64,9 +91,9 @@ public class LobbyCanvasFunction : MonoBehaviour
     /// <summary>
     /// Creates a lobby with the specified name and max players
     /// </summary>
-    public async void CreateLobby()
+    public async void CreateLobby(GameObject currentLobbyInfoPanel)
     {
-        if (lobbyNameInputField == null || string.IsNullOrEmpty(lobbyNameInputField.text))
+        if (privateLobbyNameInputField == null || string.IsNullOrEmpty(privateLobbyNameInputField.text))
         {
             Debug.LogError("Lobby name input field is not assigned or empty");
             return;
@@ -74,7 +101,36 @@ public class LobbyCanvasFunction : MonoBehaviour
 
         try
         {
-            string lobbyName = lobbyNameInputField.text;
+            string lobbyName = privateLobbyNameInputField.text;
+            CreateLobbyOptions options = new CreateLobbyOptions()
+            {
+                IsPrivate = true,
+                IsLocked = false
+            };
+
+            currentLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayersInALobby, options);
+            LobbyFeatures.SetCurrentLobby(currentLobby);
+            ActivatePanel(currentLobbyInfoPanel);
+            Debug.Log($"Lobby created with name: {lobbyName}, Code: {currentLobby.LobbyCode}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Failed to create lobby: " + e.Message);
+            debugText.text = e.Message;
+        }
+    }
+
+    public async void CreatePublicLobby(GameObject currentLobbyInfoPanel)
+    {
+        if (publicLobbyNameInputField == null || string.IsNullOrEmpty(publicLobbyNameInputField.text))
+        {
+            Debug.LogError("Lobby name input field is not assigned or empty");
+            return;
+        }
+
+        try
+        {
+            string lobbyName = publicLobbyNameInputField.text;
             CreateLobbyOptions options = new CreateLobbyOptions()
             {
                 IsPrivate = false,
@@ -82,18 +138,20 @@ public class LobbyCanvasFunction : MonoBehaviour
             };
 
             currentLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayersInALobby, options);
+            LobbyFeatures.SetCurrentLobby(currentLobby);
+            ActivatePanel(currentLobbyInfoPanel);
             Debug.Log($"Lobby created with name: {lobbyName}, Code: {currentLobby.LobbyCode}");
         }
         catch (Exception e)
         {
             Debug.LogError("Failed to create lobby: " + e.Message);
+            debugText.text = e.Message;
         }
     }
-
     /// <summary>
     /// Joins a lobby using the provided lobby code
     /// </summary>
-    public async void JoinLobbyByCode()
+    public async void JoinLobbyByCode(GameObject currentLobbyInfoPanel)
     {
         if (lobbyJoinCodeInputField == null || string.IsNullOrEmpty(lobbyJoinCodeInputField.text))
         {
@@ -105,12 +163,72 @@ public class LobbyCanvasFunction : MonoBehaviour
         {
             string lobbyCode = lobbyJoinCodeInputField.text;
             JoinLobbyByCodeOptions options = new JoinLobbyByCodeOptions();
+           
+
             currentLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, options);
+            LobbyFeatures.SetCurrentLobby(currentLobby);
+            ActivatePanel(currentLobbyInfoPanel);
             Debug.Log($"Successfully joined lobby with code: {lobbyCode}");
         }
         catch (Exception e)
         {
             Debug.LogError("Failed to join lobby: " + e.Message);
+            debugText.text = e.Message;
         }
     }
+
+    public async void LeaveLobbyAsync(GameObject FirstPanel)
+    {   
+        debugText.text = "Attempting to leave lobby...";
+        Debug.Log("Attempting to leave lobby");
+
+        if (LobbyFeatures.GetCurrentLobby() == null)
+        {
+            debugText.text = "No current lobby active";
+            return;
+        }
+        try
+        {
+            string playerId = AuthenticationService.Instance.PlayerId;
+            await LobbyService.Instance.RemovePlayerAsync(LobbyFeatures.GetCurrentLobby().Id, playerId);
+            LobbyFeatures.SetCurrentLobby(null);
+            currentLobby = null;
+            ActivatePanel(FirstPanel);
+            debugText.text = "Left lobby successfully";
+
+        }
+        catch (LobbyServiceException e)
+        {
+            Debug.LogError($"Leave lobby error : {e.Message}");
+            debugText.text = e.Message;
+
+        }
+    }
+
+    public async void DeleteLobbyAsync(GameObject FirstPanel)
+    {
+        if (LobbyFeatures.IsHost())
+        {
+            try
+            {
+                await LobbyService.Instance.DeleteLobbyAsync(LobbyFeatures.GetCurrentLobby().Id);
+                LobbyFeatures.SetCurrentLobby(null);
+                currentLobby = null;
+                debugText.text = "Lobby deleted successfully";
+                if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+                {
+                    NetworkManager.Singleton.Shutdown();
+                }
+                ActivatePanel(FirstPanel);
+            }
+            catch (LobbyServiceException e) { 
+                debugText.text = e.Message;
+            }
+        }
+        else
+        {
+            debugText.text = "Only host can delete the lobby!";
+        }
+    }
+   
 }

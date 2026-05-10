@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using TMPro;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
@@ -11,12 +12,15 @@ public class OpenLobbyFunctions : MonoBehaviour
     [SerializeField] GameObject individualLobbyInfoPrefab;
     [SerializeField] Transform verticalLayOutForLobbyInfo;
     [SerializeField] LobbyCanvasFunction lobbyCanvasFunction;
+    [SerializeField] GameObject currentLobbyInfoPanel;
+    [SerializeField] TextMeshProUGUI debugText;
 
     private List<Lobby> lobbiesInOneSearch = new List<Lobby>();
     private bool _isQuerying = false;
 
     private void OnEnable()
     {
+        Debug.Log("Getting lobbies");
         GetAllPublicLobbies();
     }
     async Task<List<Lobby>> QueryAllLobbies()
@@ -32,7 +36,7 @@ public class OpenLobbyFunctions : MonoBehaviour
         }
         catch (Exception e)
         {
-            LobbyCanvasFunction.debugText.text = e.Message;
+            debugText.text = e.Message;
             return null;
         }
     }
@@ -44,7 +48,8 @@ public class OpenLobbyFunctions : MonoBehaviour
         _isQuerying = true;
 
         try
-        {
+        {   
+            
             // Fix #1: destroy old lobby UI entries before creating new ones
             foreach (Transform child in verticalLayOutForLobbyInfo)
                 Destroy(child.gameObject);
@@ -55,10 +60,13 @@ public class OpenLobbyFunctions : MonoBehaviour
             // Fix #2: null guard in case query failed
             if (lobbiesInOneSearch == null)
             {
-                LobbyCanvasFunction.debugText.text = "Failed to retrieve lobbies.";
+                debugText.text = "Failed to retrieve lobbies.";
                 return;
             }
-
+            if(lobbiesInOneSearch.Count == 0)
+            {
+                debugText.text = "No lobbies found";
+            }
             foreach (Lobby lobby in lobbiesInOneSearch)
             {
                 GameObject lobbyGO = Instantiate(individualLobbyInfoPrefab, verticalLayOutForLobbyInfo);
@@ -80,12 +88,12 @@ public class OpenLobbyFunctions : MonoBehaviour
         {
             Lobby currentLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
             LobbyFeatures.SetCurrentLobby(currentLobby);
-            
+            lobbyCanvasFunction.ActivatePanel(currentLobbyInfoPanel);
 
         }
         catch (Exception e)
         {
-            LobbyCanvasFunction.debugText.text = e.Message;
+            debugText.text = "Join lobby exception : "+e.Message;
         }
     }
 }

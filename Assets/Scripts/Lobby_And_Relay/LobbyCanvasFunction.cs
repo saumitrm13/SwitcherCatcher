@@ -12,10 +12,11 @@ using UnityEngine.UI;
 public class LobbyCanvasFunction : MonoBehaviour
 {
     [SerializeField] private int maxPlayersInALobby = 4;
-    [SerializeField] private TMP_InputField lobbyNameInputField;
+    [SerializeField] private TMP_InputField privateLobbyNameInputField;
+    [SerializeField] private TMP_InputField publicLobbyNameInputField;
     [SerializeField] private TMP_InputField lobbyJoinCodeInputField;
     [SerializeField] private GameObject[] allPanels;
-    public static TextMeshProUGUI debugText;
+    public TextMeshProUGUI debugText;
     
     private Lobby currentLobby;
 
@@ -92,7 +93,7 @@ public class LobbyCanvasFunction : MonoBehaviour
     /// </summary>
     public async void CreateLobby(GameObject currentLobbyInfoPanel)
     {
-        if (lobbyNameInputField == null || string.IsNullOrEmpty(lobbyNameInputField.text))
+        if (privateLobbyNameInputField == null || string.IsNullOrEmpty(privateLobbyNameInputField.text))
         {
             Debug.LogError("Lobby name input field is not assigned or empty");
             return;
@@ -100,7 +101,36 @@ public class LobbyCanvasFunction : MonoBehaviour
 
         try
         {
-            string lobbyName = lobbyNameInputField.text;
+            string lobbyName = privateLobbyNameInputField.text;
+            CreateLobbyOptions options = new CreateLobbyOptions()
+            {
+                IsPrivate = true,
+                IsLocked = false
+            };
+
+            currentLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayersInALobby, options);
+            LobbyFeatures.SetCurrentLobby(currentLobby);
+            ActivatePanel(currentLobbyInfoPanel);
+            Debug.Log($"Lobby created with name: {lobbyName}, Code: {currentLobby.LobbyCode}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Failed to create lobby: " + e.Message);
+            debugText.text = e.Message;
+        }
+    }
+
+    public async void CreatePublicLobby(GameObject currentLobbyInfoPanel)
+    {
+        if (publicLobbyNameInputField == null || string.IsNullOrEmpty(publicLobbyNameInputField.text))
+        {
+            Debug.LogError("Lobby name input field is not assigned or empty");
+            return;
+        }
+
+        try
+        {
+            string lobbyName = publicLobbyNameInputField.text;
             CreateLobbyOptions options = new CreateLobbyOptions()
             {
                 IsPrivate = false,
@@ -118,7 +148,6 @@ public class LobbyCanvasFunction : MonoBehaviour
             debugText.text = e.Message;
         }
     }
-
     /// <summary>
     /// Joins a lobby using the provided lobby code
     /// </summary>

@@ -23,13 +23,14 @@ public class OpenLobbyFunctions : MonoBehaviour
         Debug.Log("Getting lobbies");
         GetAllPublicLobbies();
     }
+
     async Task<List<Lobby>> QueryAllLobbies()
     {
         try
         {
             QueryLobbiesOptions queryLobbiesOptions = new QueryLobbiesOptions
             {
-                Count = maxLobbiesToShowAtATime   // Fix #5: use serialized field
+                Count = maxLobbiesToShowAtATime
             };
             QueryResponse response = await LobbyService.Instance.QueryLobbiesAsync(queryLobbiesOptions);
             return response.Results;
@@ -43,36 +44,31 @@ public class OpenLobbyFunctions : MonoBehaviour
 
     async void GetAllPublicLobbies()
     {
-        // Fix #6: prevent spamming / stacking async calls
         if (_isQuerying) return;
         _isQuerying = true;
 
         try
-        {   
-            
-            // Fix #1: destroy old lobby UI entries before creating new ones
+        {
             foreach (Transform child in verticalLayOutForLobbyInfo)
                 Destroy(child.gameObject);
 
             lobbiesInOneSearch.Clear();
             lobbiesInOneSearch = await QueryAllLobbies();
 
-            // Fix #2: null guard in case query failed
             if (lobbiesInOneSearch == null)
             {
                 debugText.text = "Failed to retrieve lobbies.";
                 return;
             }
-            if(lobbiesInOneSearch.Count == 0)
+            if (lobbiesInOneSearch.Count == 0)
             {
                 debugText.text = "No lobbies found";
             }
+
             foreach (Lobby lobby in lobbiesInOneSearch)
             {
                 GameObject lobbyGO = Instantiate(individualLobbyInfoPrefab, verticalLayOutForLobbyInfo);
                 LobbyInfoUI lobbyInfoUI = lobbyGO.GetComponent<LobbyInfoUI>();
-
-                // Fix #4: delegate UI setup to the prefab's own component
                 lobbyInfoUI.Setup(lobby, JoinLobbyById);
             }
         }
@@ -86,14 +82,17 @@ public class OpenLobbyFunctions : MonoBehaviour
     {
         try
         {
-            Lobby currentLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
-            LobbyFeatures.SetCurrentLobby(currentLobby);
-            lobbyCanvasFunction.ActivatePanel(currentLobbyInfoPanel);
+            Lobby joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
+            LobbyFeatures.SetCurrentLobby(joinedLobby);
 
+            // Subscribe once, right after joining by ID.
+            await LobbyFeatures.SubscribeToCurrentLobbyEvents();
+
+            lobbyCanvasFunction.ActivatePanel(currentLobbyInfoPanel);
         }
         catch (Exception e)
         {
-            debugText.text = "Join lobby exception : "+e.Message;
+            debugText.text = "Join lobby exception: " + e.Message;
         }
     }
 }

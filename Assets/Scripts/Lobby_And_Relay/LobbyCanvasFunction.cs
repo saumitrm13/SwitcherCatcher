@@ -17,7 +17,7 @@ public class LobbyCanvasFunction : MonoBehaviour
     [SerializeField] private TMP_InputField lobbyJoinCodeInputField;
     [SerializeField] private GameObject[] allPanels;
     public TextMeshProUGUI debugText;
-    
+
     private Lobby currentLobby;
 
     private async void Awake()
@@ -26,8 +26,7 @@ public class LobbyCanvasFunction : MonoBehaviour
         {
             if (UnityServices.State != ServicesInitializationState.Initialized)
             {
-                // ── CHANGE 1: Read -profile arg before initializing ──────────────
-                string profile = "Player1"; // default for Unity Editor
+                string profile = "Player1";
 
                 var args = System.Environment.GetCommandLineArgs();
                 for (int i = 0; i < args.Length; i++)
@@ -39,11 +38,10 @@ public class LobbyCanvasFunction : MonoBehaviour
                     }
                 }
 
-                // ── CHANGE 2: Pass profile into InitializationOptions ────────────
                 var options = new InitializationOptions();
                 options.SetProfile(profile);
 
-                await UnityServices.InitializeAsync(options);   // ← was InitializeAsync()
+                await UnityServices.InitializeAsync(options);
                 Debug.Log($"Unity Services initialized | Profile: {profile}");
             }
         }
@@ -58,7 +56,6 @@ public class LobbyCanvasFunction : MonoBehaviour
             try
             {
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
-                // ── CHANGE 3: Log the actual PlayerId so you can verify ──────────
                 Debug.Log($"Player signed in anonymously | PlayerId: {AuthenticationService.Instance.PlayerId}");
             }
             catch (Exception e)
@@ -72,25 +69,12 @@ public class LobbyCanvasFunction : MonoBehaviour
         }
     }
 
-
-
     public void ActivatePanel(GameObject panel)
     {
         foreach (GameObject currentPanel in allPanels)
-        {
-            if (currentPanel != panel)
-            {
-                currentPanel.SetActive(false);
-            }
-            else
-            {
-                currentPanel.SetActive(true);
-            }
-        }
+            currentPanel.SetActive(currentPanel == panel);
     }
-    /// <summary>
-    /// Creates a lobby with the specified name and max players
-    /// </summary>
+
     public async void CreateLobby(GameObject currentLobbyInfoPanel)
     {
         if (privateLobbyNameInputField == null || string.IsNullOrEmpty(privateLobbyNameInputField.text))
@@ -102,16 +86,16 @@ public class LobbyCanvasFunction : MonoBehaviour
         try
         {
             string lobbyName = privateLobbyNameInputField.text;
-            CreateLobbyOptions options = new CreateLobbyOptions()
-            {
-                IsPrivate = true,
-                IsLocked = false
-            };
+            CreateLobbyOptions options = new CreateLobbyOptions { IsPrivate = true, IsLocked = false };
 
             currentLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayersInALobby, options);
             LobbyFeatures.SetCurrentLobby(currentLobby);
+
+            // Subscribe once, right after the lobby is created.
+            await LobbyFeatures.SubscribeToCurrentLobbyEvents();
+
             ActivatePanel(currentLobbyInfoPanel);
-            Debug.Log($"Lobby created with name: {lobbyName}, Code: {currentLobby.LobbyCode}");
+            Debug.Log($"Lobby created: {lobbyName}, Code: {currentLobby.LobbyCode}");
         }
         catch (Exception e)
         {
@@ -131,16 +115,16 @@ public class LobbyCanvasFunction : MonoBehaviour
         try
         {
             string lobbyName = publicLobbyNameInputField.text;
-            CreateLobbyOptions options = new CreateLobbyOptions()
-            {
-                IsPrivate = false,
-                IsLocked = false
-            };
+            CreateLobbyOptions options = new CreateLobbyOptions { IsPrivate = false, IsLocked = false };
 
             currentLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayersInALobby, options);
             LobbyFeatures.SetCurrentLobby(currentLobby);
+
+            // Subscribe once, right after the lobby is created.
+            await LobbyFeatures.SubscribeToCurrentLobbyEvents();
+
             ActivatePanel(currentLobbyInfoPanel);
-            Debug.Log($"Lobby created with name: {lobbyName}, Code: {currentLobby.LobbyCode}");
+            Debug.Log($"Lobby created: {lobbyName}, Code: {currentLobby.LobbyCode}");
         }
         catch (Exception e)
         {
@@ -148,9 +132,7 @@ public class LobbyCanvasFunction : MonoBehaviour
             debugText.text = e.Message;
         }
     }
-    /// <summary>
-    /// Joins a lobby using the provided lobby code
-    /// </summary>
+
     public async void JoinLobbyByCode(GameObject currentLobbyInfoPanel)
     {
         if (lobbyJoinCodeInputField == null || string.IsNullOrEmpty(lobbyJoinCodeInputField.text))
@@ -162,13 +144,14 @@ public class LobbyCanvasFunction : MonoBehaviour
         try
         {
             string lobbyCode = lobbyJoinCodeInputField.text;
-            JoinLobbyByCodeOptions options = new JoinLobbyByCodeOptions();
-           
-
-            currentLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, options);
+            currentLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode);
             LobbyFeatures.SetCurrentLobby(currentLobby);
+
+            // Subscribe once, right after joining.
+            await LobbyFeatures.SubscribeToCurrentLobbyEvents();
+
             ActivatePanel(currentLobbyInfoPanel);
-            Debug.Log($"Successfully joined lobby with code: {lobbyCode}");
+            Debug.Log($"Joined lobby with code: {lobbyCode}");
         }
         catch (Exception e)
         {
@@ -178,9 +161,8 @@ public class LobbyCanvasFunction : MonoBehaviour
     }
 
     public async void LeaveLobbyAsync(GameObject FirstPanel)
-    {   
+    {
         debugText.text = "Attempting to leave lobby...";
-        Debug.Log("Attempting to leave lobby");
 
         if (LobbyFeatures.GetCurrentLobby() == null)
         {
@@ -189,19 +171,20 @@ public class LobbyCanvasFunction : MonoBehaviour
         }
         try
         {
+            // Unsubscribe before leaving so we don't receive a spurious KickedFromLobby.
+            await LobbyFeatures.UnsubscribeFromCurrentLobbyEvents();
+
             string playerId = AuthenticationService.Instance.PlayerId;
             await LobbyService.Instance.RemovePlayerAsync(LobbyFeatures.GetCurrentLobby().Id, playerId);
             LobbyFeatures.SetCurrentLobby(null);
             currentLobby = null;
             ActivatePanel(FirstPanel);
             debugText.text = "Left lobby successfully";
-
         }
         catch (LobbyServiceException e)
         {
-            Debug.LogError($"Leave lobby error : {e.Message}");
+            Debug.LogError($"Leave lobby error: {e.Message}");
             debugText.text = e.Message;
-
         }
     }
 
@@ -211,17 +194,17 @@ public class LobbyCanvasFunction : MonoBehaviour
         {
             try
             {
+                await LobbyFeatures.UnsubscribeFromCurrentLobbyEvents();
                 await LobbyService.Instance.DeleteLobbyAsync(LobbyFeatures.GetCurrentLobby().Id);
                 LobbyFeatures.SetCurrentLobby(null);
                 currentLobby = null;
                 debugText.text = "Lobby deleted successfully";
                 if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
-                {
                     NetworkManager.Singleton.Shutdown();
-                }
                 ActivatePanel(FirstPanel);
             }
-            catch (LobbyServiceException e) { 
+            catch (LobbyServiceException e)
+            {
                 debugText.text = e.Message;
             }
         }
@@ -230,5 +213,4 @@ public class LobbyCanvasFunction : MonoBehaviour
             debugText.text = "Only host can delete the lobby!";
         }
     }
-   
 }

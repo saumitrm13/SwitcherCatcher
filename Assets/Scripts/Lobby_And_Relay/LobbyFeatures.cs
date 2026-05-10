@@ -1,11 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.InputSystem.HID;
 using UnityEngine.UI;
 
 public class LobbyFeatures : MonoBehaviour
@@ -19,90 +18,176 @@ public class LobbyFeatures : MonoBehaviour
     [SerializeField] private TextMeshProUGUI debugText;
     [SerializeField] private GameObject FirstPanel;
 
-    private static Lobby currentLobby;
-    private ILobbyEvents _lobbyEvents;                    // ← store reference for unsubscribing
-    private LobbyEventCallbacks _lobbyEventCallbacks;     // ← store reference for unsubscribing
+    private const float HeartbeatInterval = 15f;
 
-    // ─── Subscribe when this panel becomes active ────────────────────────────
-    private async void OnEnable()
+    private static Lobby currentLobby;
+
+    // Static so the subscription survives panel hide/show cycles.
+    // The subscription belongs to the lobby session, not the panel lifecycle.
+    private static ILobbyEvents _lobbyEvents;
+    private static LobbyEventCallbacks _lobbyEventCallbacks;
+    private static bool _isSubscribed = false;
+
+    private Coroutine _heartbeatCoroutine;
+
+    // ─── OnEnable: just refresh the display, never re-subscribe ──────────────
+    private void OnEnable()
     {
         ShowLobbyInfo();
 
-        if (currentLobby != null)
-            await SubscribeToLobbyEvents();   // ← assign events here, after lobby is confirmed
+        // Heartbeat is instance-scoped (needs StartCoroutine on a MonoBehaviour).
+        // Safe to restart here — stopped cleanly in OnDisable.
+        if (currentLobby != null && IsHost())
+            _heartbeatCoroutine = StartCoroutine(HeartbeatCoroutine());
     }
 
-    // ─── Unsubscribe when this panel is hidden/destroyed ─────────────────────
-    private async void OnDisable()
+    private void OnDisable()
     {
-        if (_lobbyEvents != null)
+        StopHeartbeat();
+        // Do NOT unsubscribe here — the lobby is still alive, we just hid the panel.
+    }
+
+    // ─── Call once, right after CreateLobby or JoinLobby succeeds ────────────
+    /// <summary>
+    /// Subscribes to lobby events for the current lobby session.
+    /// Call exactly once per lobby join/create. Safe to call again after a
+    /// clean Leave/Delete because _isSubscribed is reset in SetCurrentLobby(null).
+    /// </summary>
+    public static async System.Threading.Tasks.Task SubscribeToCurrentLobbyEvents()
+    {
+        if (_isSubscribed || currentLobby == null) return;
+
+        _lobbyEventCallbacks = new LobbyEventCallbacks();
+
+        _lobbyEventCallbacks.LobbyChanged += OnLobbyChangedStatic;
+        _lobbyEventCallbacks.LobbyDeleted += OnLobbyDeletedStatic;
+        _lobbyEventCallbacks.DataChanged += OnDataChangedStatic;
+        _lobbyEventCallbacks.DataAdded += OnDataChangedStatic;
+        _lobbyEventCallbacks.DataRemoved += OnDataChangedStatic;
+        _lobbyEventCallbacks.PlayerJoined += OnPlayerJoinedStatic;
+        _lobbyEventCallbacks.PlayerLeft += OnPlayerLeftStatic;
+        _lobbyEventCallbacks.PlayerDataChanged += OnPlayerDataChangedStatic;
+        _lobbyEventCallbacks.PlayerDataAdded += OnPlayerDataChangedStatic;
+        _lobbyEventCallbacks.PlayerDataRemoved += OnPlayerDataChangedStatic;
+        _lobbyEventCallbacks.KickedFromLobby += OnKickedFromLobbyStatic;
+        _lobbyEventCallbacks.LobbyEventConnectionStateChanged += OnConnectionStateChangedStatic;
+
+        _lobbyEvents = await LobbyService.Instance.SubscribeToLobbyEventsAsync(currentLobby.Id, _lobbyEventCallbacks);
+        _isSubscribed = true;
+
+        Debug.Log($"[LobbyFeatures] Subscribed to lobby events for {currentLobby.Id}");
+    }
+
+    public static async System.Threading.Tasks.Task UnsubscribeFromCurrentLobbyEvents()
+    {
+        if (!_isSubscribed || _lobbyEvents == null) return;
+
+        await _lobbyEvents.UnsubscribeAsync();
+        _lobbyEvents = null;
+        _lobbyEventCallbacks = null;
+        _isSubscribed = false;
+
+        Debug.Log("[LobbyFeatures] Unsubscribed from lobby events");
+    }
+
+    // ─── Static event handlers (fire even when the panel is hidden) ───────────
+
+    private static void OnLobbyChangedStatic(ILobbyChanges changes)
+    {
+        if (currentLobby == null) return;
+        changes.ApplyToLobby(currentLobby);
+        FindAnyObjectByType<LobbyFeatures>()?.ShowLobbyInfo();
+    }
+
+    private static void OnLobbyDeletedStatic()
+    {
+        Debug.Log("[LobbyFeatures] Lobby deleted.");
+        _ = UnsubscribeFromCurrentLobbyEvents();
+        SetCurrentLobby(null);
+        FindAnyObjectByType<LobbyFeatures>()?.HandleLobbyGone("Your lobby was deleted");
+    }
+
+    private static void OnDataChangedStatic(
+        Dictionary<string, ChangedOrRemovedLobbyValue<DataObject>> _)
+        => FindAnyObjectByType<LobbyFeatures>()?.ShowLobbyInfo();
+
+    private static void OnPlayerJoinedStatic(List<LobbyPlayerJoined> _)
+        => FindAnyObjectByType<LobbyFeatures>()?.RefreshPlayerList();
+
+    private static void OnPlayerLeftStatic(List<int> _)
+        => FindAnyObjectByType<LobbyFeatures>()?.RefreshPlayerList();
+
+    private static void OnPlayerDataChangedStatic(
+        Dictionary<int, Dictionary<string, ChangedOrRemovedLobbyValue<PlayerDataObject>>> _)
+        => FindAnyObjectByType<LobbyFeatures>()?.RefreshPlayerList();
+
+    private static void OnKickedFromLobbyStatic()
+    {
+        Debug.Log("[LobbyFeatures] Kicked from lobby.");
+        _ = UnsubscribeFromCurrentLobbyEvents();
+        SetCurrentLobby(null);
+        FindAnyObjectByType<LobbyFeatures>()?.HandleLobbyGone("Either your lobby was deleted or you were kicked out");
+    }
+
+    private static void OnConnectionStateChangedStatic(LobbyEventConnectionState state)
+    {
+        // Only log unexpected states — removes the constant console spam.
+        if (state != LobbyEventConnectionState.Subscribed)
+            Debug.LogWarning($"[LobbyFeatures] Lobby connection state: {state}");
+    }
+
+    // ─── Instance helpers ─────────────────────────────────────────────────────
+
+    private void HandleLobbyGone(string message)
+    {
+        StopHeartbeat();
+        if (debugText != null) debugText.text = message;
+        lobbyFunctions?.ActivatePanel(FirstPanel);
+    }
+
+    // ─── Heartbeat ────────────────────────────────────────────────────────────
+
+    private IEnumerator HeartbeatCoroutine()
+    {
+        var wait = new WaitForSecondsRealtime(HeartbeatInterval);
+        while (currentLobby != null)
         {
-            await _lobbyEvents.UnsubscribeAsync();
-            _lobbyEvents = null;
+            yield return wait;
+            if (currentLobby == null) yield break;
+
+            bool done = false;
+            SendHeartbeatAsync(currentLobby.Id, () => done = true);
+            yield return new WaitUntil(() => done);
         }
     }
 
-    // ─── Event subscription setup ─────────────────────────────────────────────
-    private async System.Threading.Tasks.Task SubscribeToLobbyEvents()
+    private async void SendHeartbeatAsync(string lobbyId, System.Action onDone)
     {
-        _lobbyEventCallbacks = new LobbyEventCallbacks();
-
-        _lobbyEventCallbacks.LobbyChanged += OnLobbyChanged;
-        _lobbyEventCallbacks.LobbyDeleted += OnLobbyDeleted;
-        _lobbyEventCallbacks.DataChanged += OnLobbyDataChanged;
-        _lobbyEventCallbacks.DataAdded += OnLobbyDataAdded;
-        _lobbyEventCallbacks.DataRemoved += OnLobbyDataRemoved;
-        _lobbyEventCallbacks.PlayerJoined += OnPlayerJoined;
-        _lobbyEventCallbacks.PlayerLeft += OnPlayerLeft;
-        _lobbyEventCallbacks.PlayerDataChanged += OnPlayerDataChanged;
-        _lobbyEventCallbacks.PlayerDataAdded += OnPlayerDataAdded;
-        _lobbyEventCallbacks.PlayerDataRemoved += OnPlayerDataRemoved;
-        _lobbyEventCallbacks.KickedFromLobby += OnKickedFromLobby;
-        _lobbyEventCallbacks.LobbyEventConnectionStateChanged += OnConnectionStateChanged;
-
-        _lobbyEvents = await LobbyService.Instance.SubscribeToLobbyEventsAsync(currentLobby.Id, _lobbyEventCallbacks);
+        try
+        {
+            await LobbyService.Instance.SendHeartbeatPingAsync(lobbyId);
+        }
+        catch (LobbyServiceException e)
+        {
+            Debug.LogWarning($"[LobbyFeatures] Heartbeat failed: {e.Message}");
+        }
+        finally
+        {
+            onDone?.Invoke();
+        }
     }
 
-    // ─── Handlers ─────────────────────────────────────────────────────────────
-    private void OnLobbyChanged(ILobbyChanges changes)
+    private void StopHeartbeat()
     {
-        changes.ApplyToLobby(currentLobby);
-        ShowLobbyInfo();   // ← refresh the whole display on any lobby change
+        if (_heartbeatCoroutine != null)
+        {
+            StopCoroutine(_heartbeatCoroutine);
+            _heartbeatCoroutine = null;
+        }
     }
 
-    private void OnLobbyDeleted()
-    {
-        Debug.Log("Lobby deleted.");
-        debugText.text = "Your lobby was deleted";
-        lobbyFunctions.ActivatePanel(FirstPanel);
-        // e.g. return to main menu
-    }
+    // ─── Display ──────────────────────────────────────────────────────────────
 
-    private void OnLobbyDataChanged(Dictionary<string, ChangedOrRemovedLobbyValue<DataObject>> changes) => ShowLobbyInfo();
-    private void OnLobbyDataAdded(Dictionary<string, ChangedOrRemovedLobbyValue<DataObject>> added) => ShowLobbyInfo();
-    private void OnLobbyDataRemoved(Dictionary<string, ChangedOrRemovedLobbyValue<DataObject>> removed) => ShowLobbyInfo();
-
-    private void OnPlayerJoined(List<LobbyPlayerJoined> joined) => RefreshPlayerList();
-    private void OnPlayerLeft(List<int> leftIndexes) => RefreshPlayerList();
-    
-    private void OnPlayerDataChanged(Dictionary<int, Dictionary<string, ChangedOrRemovedLobbyValue<PlayerDataObject>>> changes) => RefreshPlayerList();
-    private void OnPlayerDataAdded(Dictionary<int, Dictionary<string, ChangedOrRemovedLobbyValue<PlayerDataObject>>> added) => RefreshPlayerList();
-    private void OnPlayerDataRemoved(Dictionary<int, Dictionary<string, ChangedOrRemovedLobbyValue<PlayerDataObject>>> removed) => RefreshPlayerList();
-
-    private void OnKickedFromLobby()
-    {
-        Debug.Log("Kicked from lobby.");
-        debugText.text = "Either your lobby was deleted or you were kicked out";
-        lobbyFunctions.ActivatePanel(FirstPanel);
-        // e.g. return to main menu
-    }
-
-    private void OnConnectionStateChanged(LobbyEventConnectionState state)
-    {
-        Debug.Log($"Lobby connection state: {state}");
-    }
-
-    // ─── Display ───────────────────────────────────────────────────────────────
     private void ShowLobbyInfo()
     {
         if (currentLobby == null) return;
@@ -115,7 +200,8 @@ public class LobbyFeatures : MonoBehaviour
 
     private void RefreshPlayerList()
     {
-        // Clear old entries first to avoid duplicates
+        if (currentLobby == null) return;
+
         foreach (Transform child in verticalLayoutGroupForPlayerInfo)
             Destroy(child.gameObject);
 
@@ -126,8 +212,9 @@ public class LobbyFeatures : MonoBehaviour
             playerInfo.transform.Find("PlayerNameText").GetComponent<TextMeshProUGUI>().text
                 = player.Data != null && player.Data.ContainsKey("PlayerName")
                 ? player.Data["PlayerName"].Value : "Unknown";
+
             Button kickOutBtn = playerInfo.transform.Find("KickOutBtn")?.GetComponent<Button>();
-            if(kickOutBtn != null)
+            if (kickOutBtn != null)
             {
                 if (!IsHost())
                 {
@@ -135,42 +222,42 @@ public class LobbyFeatures : MonoBehaviour
                 }
                 else
                 {
-                    kickOutBtn.onClick.AddListener(() => { KickOutPlayerAsync(player.Id); } );
+                    string capturedId = player.Id;
+                    kickOutBtn.onClick.AddListener(() => KickOutPlayerAsync(capturedId));
                 }
             }
         }
-
-        
     }
 
-    // ─── Static accessors ──────────────────────────────────────────────────────
+    // ─── Static accessors ─────────────────────────────────────────────────────
+
     public static Lobby GetCurrentLobby() => currentLobby;
-    public static void SetCurrentLobby(Lobby newCurrentLobby) => currentLobby = newCurrentLobby;
+
+    public static void SetCurrentLobby(Lobby newCurrentLobby)
+    {
+        currentLobby = newCurrentLobby;
+        // Reset subscription flag so the next lobby create/join subscribes fresh.
+        if (newCurrentLobby == null)
+            _isSubscribed = false;
+    }
 
     public static bool IsHost()
     {
-        if(currentLobby == null) return false;
-        string playerId = AuthenticationService.Instance.PlayerId;
-        return playerId == currentLobby.HostId;
+        if (currentLobby == null) return false;
+        return AuthenticationService.Instance.PlayerId == currentLobby.HostId;
     }
 
     async void KickOutPlayerAsync(string playerId)
     {
-        if (IsHost())
+        if (!IsHost()) { debugText.text = "Only host can kick players out"; return; }
+        try
         {
-            try
-            {
-                await LobbyService.Instance.RemovePlayerAsync(currentLobby.Id, playerId);
-                debugText.text = "Kicked out player";
-            }
-            catch(LobbyServiceException e) 
-            {
-                debugText.text = e.Message;
-            }
+            await LobbyService.Instance.RemovePlayerAsync(currentLobby.Id, playerId);
+            debugText.text = "Kicked out player";
         }
-        else
+        catch (LobbyServiceException e)
         {
-            debugText.text = "Only host can kick players out";
+            debugText.text = e.Message;
         }
     }
 }

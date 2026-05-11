@@ -1,4 +1,6 @@
-﻿using System;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using TMPro;
 using Unity.Netcode;
@@ -9,17 +11,24 @@ using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
 
+
 public class LobbyCanvasFunction : MonoBehaviour
 {
     [SerializeField] private int maxPlayersInALobby = 4;
     [SerializeField] private TMP_InputField privateLobbyNameInputField;
     [SerializeField] private TMP_InputField publicLobbyNameInputField;
     [SerializeField] private TMP_InputField lobbyJoinCodeInputField;
+    [SerializeField] private GameObject playerNamePanel;
+    [SerializeField] private TMP_InputField playerNameInputField;
+    [SerializeField] private TextMeshProUGUI nameErrorText;
     [SerializeField] private GameObject[] allPanels;
     public TextMeshProUGUI debugText;
 
-    private Lobby currentLobby;
+    private const string PlayerNameDataKey = "PlayerName";
+    private const string PlayerNamePrefsKey = "PlayerName";
 
+    private Lobby currentLobby;
+    private string _localPlayerName = "";
     private async void Awake()
     {
         try
@@ -57,6 +66,9 @@ public class LobbyCanvasFunction : MonoBehaviour
             {
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
                 Debug.Log($"Player signed in anonymously | PlayerId: {AuthenticationService.Instance.PlayerId}");
+                if (nameErrorText != null) nameErrorText.text = "";
+                ActivatePanel(playerNamePanel);
+               
             }
             catch (Exception e)
             {
@@ -69,6 +81,12 @@ public class LobbyCanvasFunction : MonoBehaviour
         }
     }
 
+    private void Start()
+    {
+        LoadSavedPlayerName();
+        
+    }
+
     public void ActivatePanel(GameObject panel)
     {
         foreach (GameObject currentPanel in allPanels)
@@ -77,6 +95,9 @@ public class LobbyCanvasFunction : MonoBehaviour
 
     public async void CreateLobby(GameObject currentLobbyInfoPanel)
     {
+        if (!HasValidPlayerName())
+            return;
+
         if (privateLobbyNameInputField == null || string.IsNullOrEmpty(privateLobbyNameInputField.text))
         {
             Debug.LogError("Lobby name input field is not assigned or empty");
@@ -86,7 +107,12 @@ public class LobbyCanvasFunction : MonoBehaviour
         try
         {
             string lobbyName = privateLobbyNameInputField.text;
-            CreateLobbyOptions options = new CreateLobbyOptions { IsPrivate = true, IsLocked = false };
+            CreateLobbyOptions options = new CreateLobbyOptions
+            {
+                IsPrivate = true,
+                IsLocked = false,
+                Player = BuildPlayerWithName()
+            };
 
             currentLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayersInALobby, options);
             LobbyFeatures.SetCurrentLobby(currentLobby);
@@ -106,6 +132,9 @@ public class LobbyCanvasFunction : MonoBehaviour
 
     public async void CreatePublicLobby(GameObject currentLobbyInfoPanel)
     {
+        if (!HasValidPlayerName())
+            return;
+
         if (publicLobbyNameInputField == null || string.IsNullOrEmpty(publicLobbyNameInputField.text))
         {
             Debug.LogError("Lobby name input field is not assigned or empty");
@@ -115,7 +144,12 @@ public class LobbyCanvasFunction : MonoBehaviour
         try
         {
             string lobbyName = publicLobbyNameInputField.text;
-            CreateLobbyOptions options = new CreateLobbyOptions { IsPrivate = false, IsLocked = false };
+            CreateLobbyOptions options = new CreateLobbyOptions
+            {
+                IsPrivate = false,
+                IsLocked = false,
+                Player = BuildPlayerWithName()
+            };
 
             currentLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayersInALobby, options);
             LobbyFeatures.SetCurrentLobby(currentLobby);
@@ -135,6 +169,9 @@ public class LobbyCanvasFunction : MonoBehaviour
 
     public async void JoinLobbyByCode(GameObject currentLobbyInfoPanel)
     {
+        if (!HasValidPlayerName())
+            return;
+
         if (lobbyJoinCodeInputField == null || string.IsNullOrEmpty(lobbyJoinCodeInputField.text))
         {
             Debug.LogError("Lobby join code input field is not assigned or empty");
@@ -144,7 +181,12 @@ public class LobbyCanvasFunction : MonoBehaviour
         try
         {
             string lobbyCode = lobbyJoinCodeInputField.text;
-            currentLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode);
+            JoinLobbyByCodeOptions options = new JoinLobbyByCodeOptions
+            {
+                Player = BuildPlayerWithName(),
+            };
+
+            currentLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, options);
             LobbyFeatures.SetCurrentLobby(currentLobby);
 
             // Subscribe once, right after joining.
@@ -213,4 +255,76 @@ public class LobbyCanvasFunction : MonoBehaviour
             debugText.text = "Only host can delete the lobby!";
         }
     }
+
+    public bool HasValidPlayerName()
+    {
+        if (playerNameInputField == null)
+        {
+            Debug.LogError("Player name input field is not assigned");
+            if (debugText != null) debugText.text = "Player name input field is not assigned";
+            return false;
+        }
+
+        string playerName = playerNameInputField.text.Trim();
+        if (string.IsNullOrEmpty(playerName))
+        {
+            if (debugText != null) debugText.text = "Please enter your player name";
+            playerNameInputField.Select();
+            playerNameInputField.ActivateInputField();
+            return false;
+        }
+
+        PlayerPrefs.SetString(PlayerNamePrefsKey, playerName);
+        PlayerPrefs.Save();
+        return true;
+    }
+
+  
+
+    private void LoadSavedPlayerName()
+    {
+        if (playerNameInputField == null)
+            return;
+
+        string savedPlayerName = PlayerPrefs.GetString(PlayerNamePrefsKey, string.Empty);
+        if (!string.IsNullOrWhiteSpace(savedPlayerName) && string.IsNullOrWhiteSpace(playerNameInputField.text))
+            playerNameInputField.text = savedPlayerName;
+    }
+
+ 
+
+    public void ConfirmPlayerName(GameObject FirstPanel)
+    {
+        string name = playerNameInputField.text.Trim();
+        if (string.IsNullOrEmpty(name))
+        {
+            if (nameErrorText != null)
+                nameErrorText.text = "Name cannot be empty.";
+            return;
+        }
+        _localPlayerName = name;
+        // (Optional) Persist across sessions
+        PlayerPrefs.SetString("PlayerName", _localPlayerName);
+        PlayerPrefs.Save();
+        // Navigate to the main lobby menu panel
+        ActivatePanel(FirstPanel);
+    }
+
+    public Unity.Services.Lobbies.Models.Player BuildPlayerWithName()
+    {
+        return new Unity.Services.Lobbies.Models.Player
+        {
+            Data = new Dictionary<String,PlayerDataObject>
+        {
+            {
+                "PlayerName",
+                new PlayerDataObject(
+                    PlayerDataObject.VisibilityOptions.Public,
+                    _localPlayerName
+                )
+            }
+        }
+        };
+    }
+
 }

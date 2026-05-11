@@ -21,7 +21,9 @@ public class LobbyCanvasFunction : MonoBehaviour
     [SerializeField] private GameObject playerNamePanel;
     [SerializeField] private TMP_InputField playerNameInputField;
     [SerializeField] private TextMeshProUGUI nameErrorText;
+    [SerializeField] private GameObject FirstPanel;
     [SerializeField] private GameObject[] allPanels;
+    public TextMeshProUGUI userNameText;
     public TextMeshProUGUI debugText;
 
     private const string PlayerNameDataKey = "PlayerName";
@@ -67,7 +69,7 @@ public class LobbyCanvasFunction : MonoBehaviour
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
                 Debug.Log($"Player signed in anonymously | PlayerId: {AuthenticationService.Instance.PlayerId}");
                 if (nameErrorText != null) nameErrorText.text = "";
-                ActivatePanel(playerNamePanel);
+                
                
             }
             catch (Exception e)
@@ -284,9 +286,17 @@ public class LobbyCanvasFunction : MonoBehaviour
     private void LoadSavedPlayerName()
     {
         if (playerNameInputField == null)
+        {
             return;
-
+        }
+      
         string savedPlayerName = PlayerPrefs.GetString(PlayerNamePrefsKey, string.Empty);
+        if (string.IsNullOrEmpty(savedPlayerName)) {
+            ActivatePanel(playerNamePanel);
+            return;
+        }
+        userNameText.text = "Hi " + savedPlayerName + "!";
+        ActivatePanel(FirstPanel);
         if (!string.IsNullOrWhiteSpace(savedPlayerName) && string.IsNullOrWhiteSpace(playerNameInputField.text))
             playerNameInputField.text = savedPlayerName;
     }
@@ -306,6 +316,7 @@ public class LobbyCanvasFunction : MonoBehaviour
         // (Optional) Persist across sessions
         PlayerPrefs.SetString("PlayerName", _localPlayerName);
         PlayerPrefs.Save();
+        userNameText.text = "Hi "+name + "!";
         // Navigate to the main lobby menu panel
         ActivatePanel(FirstPanel);
     }

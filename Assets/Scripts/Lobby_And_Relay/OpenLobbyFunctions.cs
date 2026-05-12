@@ -80,9 +80,17 @@ public class OpenLobbyFunctions : MonoBehaviour
 
     async void JoinLobbyById(string lobbyId)
     {
+        if (!lobbyCanvasFunction.HasValidPlayerName())
+            return;
+
         try
         {
-            Lobby joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
+            JoinLobbyByIdOptions options = new JoinLobbyByIdOptions
+            {
+                Player = lobbyCanvasFunction.BuildPlayerWithName()
+            };
+
+            Lobby joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId, options);
             LobbyFeatures.SetCurrentLobby(joinedLobby);
 
             // Subscribe once, right after joining by ID.

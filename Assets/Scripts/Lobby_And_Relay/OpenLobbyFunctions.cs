@@ -5,6 +5,7 @@ using TMPro;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class OpenLobbyFunctions : MonoBehaviour
 {
@@ -14,6 +15,7 @@ public class OpenLobbyFunctions : MonoBehaviour
     [SerializeField] LobbyCanvasFunction lobbyCanvasFunction;
     [SerializeField] GameObject currentLobbyInfoPanel;
     [SerializeField] TextMeshProUGUI debugText;
+    [SerializeField] Button refreshButton;
 
     private List<Lobby> lobbiesInOneSearch = new List<Lobby>();
     private bool _isQuerying = false;
@@ -47,6 +49,7 @@ public class OpenLobbyFunctions : MonoBehaviour
         if (_isQuerying) return;
         _isQuerying = true;
 
+        refreshButton.interactable = false;
         try
         {
             foreach (Transform child in verticalLayOutForLobbyInfo)
@@ -75,9 +78,15 @@ public class OpenLobbyFunctions : MonoBehaviour
         finally
         {
             _isQuerying = false;
+            refreshButton.interactable = true;
         }
     }
 
+
+    public void OnRefreshBtnClicked()
+    {
+        GetAllPublicLobbies();
+    }
     async void JoinLobbyById(string lobbyId)
     {
         if (!lobbyCanvasFunction.HasValidPlayerName())

@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using Unity.Netcode;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
@@ -17,6 +18,7 @@ public class LobbyFeatures : MonoBehaviour
     [SerializeField] private LobbyCanvasFunction lobbyFunctions;
     [SerializeField] private TextMeshProUGUI debugText;
     [SerializeField] private GameObject FirstPanel;
+    [SerializeField] GameObject startGameButton;
 
     private const float HeartbeatInterval = 15f;
 
@@ -92,10 +94,28 @@ public class LobbyFeatures : MonoBehaviour
 
     // ─── Static event handlers (fire even when the panel is hidden) ───────────
 
-    private static void OnLobbyChangedStatic(ILobbyChanges changes)
+    private static async void OnLobbyChangedStatic(ILobbyChanges changes)
     {
         if (currentLobby == null) return;
         changes.ApplyToLobby(currentLobby);
+
+        // Check if the game has been started by the host
+        if (currentLobby.Data != null
+            && currentLobby.Data.ContainsKey("RelayJoinCode")
+            && !LobbyFeatures.IsHost()) // host already handled this
+        {
+            string relayJoinCode = currentLobby.Data["RelayJoinCode"].Value;
+            string catcherPlayerId = currentLobby.Data["CatcherPlayerId"].Value;
+
+            GameSessionData.Instance.CatcherPlayerId = catcherPlayerId;
+            GameSessionData.Instance.IsRelayHost = false;
+
+            await RelayManager.JoinRelay(relayJoinCode);
+            NetworkManager.Singleton.StartClient();
+            // Scene loads automatically via NetworkManager scene sync
+            return;
+        }
+
         FindAnyObjectByType<LobbyFeatures>()?.ShowLobbyInfo();
     }
 
@@ -195,6 +215,8 @@ public class LobbyFeatures : MonoBehaviour
         lobbyNameForDisplayText.text = currentLobby.Name;
         lobbyJoinCodeForDisplayText.text = currentLobby.LobbyCode;
         DeleteLobbyBtn.SetActive(IsHost());
+        if (startGameButton != null)
+            startGameButton.SetActive(IsHost());
         RefreshPlayerList();
     }
 
@@ -259,5 +281,41 @@ public class LobbyFeatures : MonoBehaviour
         {
             debugText.text = e.Message;
         }
+    }
+    public async void StartGame()
+    {
+        Debug.Log("Starting game");
+        if (!IsHost()) return;
+
+        // Pick a random catcher from the player list
+        var players = currentLobby.Players;
+        string catcherPlayerId = players[Random.Range(0, players.Count)].Id;
+
+        // Create relay allocation and get join code
+        int maxPlayers = currentLobby.MaxPlayers;
+        string relayJoinCode = await RelayManager.CreateRelayAndGetJoinCode(maxPlayers);
+
+        // Store both in lobby data so all clients can read them
+        await LobbyService.Instance.UpdateLobbyAsync(currentLobby.Id, new UpdateLobbyOptions
+        {
+            Data = new Dictionary<string, DataObject>
+        {
+            {
+                "RelayJoinCode", new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode)
+            },
+            {
+                "CatcherPlayerId", new DataObject(DataObject.VisibilityOptions.Member, catcherPlayerId)
+            }
+        }
+        });
+
+        // Store locally for this player (host)
+        GameSessionData.Instance.CatcherPlayerId = catcherPlayerId;
+        GameSessionData.Instance.IsRelayHost = true;
+
+        // Start host and load game scene
+        NetworkManager.Singleton.StartHost();
+        NetworkManager.Singleton.SceneManager.LoadScene("GameSessionScene",
+            UnityEngine.SceneManagement.LoadSceneMode.Single);
     }
 }

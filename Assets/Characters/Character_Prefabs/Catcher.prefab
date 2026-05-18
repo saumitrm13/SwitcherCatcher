@@ -2891,9 +2891,12 @@ MonoBehaviour:
   listener: {fileID: 677604040742582569}
   rotationFactorPerFrame: 15
   movementSpeed: 2
+  characterController: {fileID: -8290097623389556599}
+  animator: {fileID: 6795406204036473320}
   maxJumpTime: 2
   maxJumpHeight: 40
   AttackDuration: 0.6
+  fallRecoveryTime: 4
 --- !u!114 &6173666791833947811
 MonoBehaviour:
   m_ObjectHideFlags: 0

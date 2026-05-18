@@ -1,7 +1,10 @@
-﻿using System.Collections;
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TMPro;
 using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
@@ -10,6 +13,9 @@ using UnityEngine.UI;
 
 public class LobbyFeatures : MonoBehaviour
 {
+    [SerializeField] private GameObject gameSessionContainer; // Assign in Inspector
+    [SerializeField] private GameObject lobbyUIContainer;      // Assign in Inspector
+    
     [SerializeField] private TextMeshProUGUI lobbyNameForDisplayText;
     [SerializeField] private TextMeshProUGUI lobbyJoinCodeForDisplayText;
     [SerializeField] private GameObject playerInfoPrefab;
@@ -18,8 +24,8 @@ public class LobbyFeatures : MonoBehaviour
     [SerializeField] private LobbyCanvasFunction lobbyFunctions;
     [SerializeField] private TextMeshProUGUI debugText;
     [SerializeField] private GameObject FirstPanel;
-    [SerializeField] GameObject startGameButton;
-
+    [SerializeField] private GameObject startGameButton;
+    [SerializeField] private NetworkObject PlayerPrefab;
     private const float HeartbeatInterval = 15f;
 
     private static Lobby currentLobby;
@@ -35,7 +41,30 @@ public class LobbyFeatures : MonoBehaviour
     // ─── OnEnable: just refresh the display, never re-subscribe ──────────────
     private void OnEnable()
     {
+        Debug.Log($"=== NetworkManager Configuration ===");
+        Debug.Log($"NetworkManager.Singleton exists: {NetworkManager.Singleton != null}");
+        if (NetworkManager.Singleton != null)
+        {
+            Debug.Log($"IsHost: {NetworkManager.Singleton.IsHost}");
+            Debug.Log($"IsClient: {NetworkManager.Singleton.IsClient}");
+            Debug.Log($"IsServer: {NetworkManager.Singleton.IsServer}");
+            Debug.Log($"LocalClientId: {NetworkManager.Singleton.LocalClientId}");
+            
+            var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+            if (transport != null)
+            {
+                Debug.Log($"UnityTransport found");
+            }
+        }
+        Debug.Log($"====================================");
+
         ShowLobbyInfo();
+
+        // Cache the game session container reference
+        if (_gameSessionContainer == null)
+        {
+            _gameSessionContainer = GameObject.Find("GameSessionContainer");
+        }
 
         // Heartbeat is instance-scoped (needs StartCoroutine on a MonoBehaviour).
         // Safe to restart here — stopped cleanly in OnDisable.
@@ -98,24 +127,7 @@ public class LobbyFeatures : MonoBehaviour
     {
         if (currentLobby == null) return;
         changes.ApplyToLobby(currentLobby);
-
-        // Check if the game has been started by the host
-        if (currentLobby.Data != null
-            && currentLobby.Data.ContainsKey("RelayJoinCode")
-            && !LobbyFeatures.IsHost()) // host already handled this
-        {
-            string relayJoinCode = currentLobby.Data["RelayJoinCode"].Value;
-            string catcherPlayerId = currentLobby.Data["CatcherPlayerId"].Value;
-
-            GameSessionData.Instance.CatcherPlayerId = catcherPlayerId;
-            GameSessionData.Instance.IsRelayHost = false;
-
-            await RelayManager.JoinRelay(relayJoinCode);
-            NetworkManager.Singleton.StartClient();
-            // Scene loads automatically via NetworkManager scene sync
-            return;
-        }
-
+        await CheckAndJoinRelay();
         FindAnyObjectByType<LobbyFeatures>()?.ShowLobbyInfo();
     }
 
@@ -127,10 +139,26 @@ public class LobbyFeatures : MonoBehaviour
         FindAnyObjectByType<LobbyFeatures>()?.HandleLobbyGone("Your lobby was deleted");
     }
 
-    private static void OnDataChangedStatic(
-        Dictionary<string, ChangedOrRemovedLobbyValue<DataObject>> _)
-        => FindAnyObjectByType<LobbyFeatures>()?.ShowLobbyInfo();
+    private static async void OnDataChangedStatic(
+     Dictionary<string, ChangedOrRemovedLobbyValue<DataObject>> _)
+    {
+        // ── Refresh the lobby object to get the latest data ────────────────────
+        if (currentLobby != null)
+        {
+            try
+            {
+                currentLobby = await LobbyService.Instance.GetLobbyAsync(currentLobby.Id);
+                Debug.Log("[LobbyFeatures] Lobby data refreshed from server");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[LobbyFeatures] Failed to refresh lobby: {ex.Message}");
+            }
+        }
 
+        await CheckAndJoinRelay();
+        FindAnyObjectByType<LobbyFeatures>()?.ShowLobbyInfo();
+    }
     private static void OnPlayerJoinedStatic(List<LobbyPlayerJoined> _)
         => FindAnyObjectByType<LobbyFeatures>()?.RefreshPlayerList();
 
@@ -157,7 +185,79 @@ public class LobbyFeatures : MonoBehaviour
     }
 
     // ─── Instance helpers ─────────────────────────────────────────────────────
+    private static bool _alreadyAttemptedJoin = false;
+    [SerializeField] private static GameObject _gameSessionContainer; // Will be set by OnEnable
 
+    private static async Task CheckAndJoinRelay()
+    {
+        if (currentLobby == null || IsHost()) return;
+        
+        if (_alreadyAttemptedJoin) return;
+        
+        if (!currentLobby.Data.ContainsKey("RelayJoinCode"))
+        {
+            return;
+        }
+
+        _alreadyAttemptedJoin = true;
+        
+        string relayJoinCode = currentLobby.Data["RelayJoinCode"].Value;
+        string catcherPlayerId = currentLobby.Data["CatcherPlayerId"].Value;
+
+        Debug.Log($"[Client] Received relay join code: {relayJoinCode}");
+
+        if (GameSessionData.Instance == null)
+        {
+            GameObject gameSessionDataObj = new GameObject("GameSessionData");
+            gameSessionDataObj.AddComponent<GameSessionData>();
+        }
+
+        GameSessionData.Instance.CatcherPlayerId = catcherPlayerId;
+        GameSessionData.Instance.IsRelayHost = false;
+
+        try
+        {
+            Debug.Log("[Client] Joining relay...");
+            await RelayManager.JoinRelay(relayJoinCode);
+
+            // ── Activate UI before connecting ──────────────────────────────────
+            // Netcode_Functions lives inside gameSessionContainer.
+            // It must be active BEFORE StartClient() so that OnNetworkSpawn
+            // fires into a fully initialised scene object.
+            var instance = FindObjectOfType<LobbyFeatures>();
+            if (instance != null)
+            {
+                if (instance.lobbyUIContainer != null)
+                    instance.lobbyUIContainer.SetActive(false);
+
+                if (instance.gameSessionContainer != null)
+                {
+                    Debug.Log("[Client] Activating game session...");
+                    instance.gameSessionContainer.SetActive(true);
+                }
+            }
+
+            // Small stabilisation wait after relay join + UI setup
+            Debug.Log("[Client] Waiting for transport to stabilize...");
+            await System.Threading.Tasks.Task.Delay(1000);
+
+            Debug.Log("[Client] Starting client connection...");
+            if (NetworkManager.Singleton.IsListening)
+            {
+                Debug.LogWarning("[Client] NetworkManager is already listening — skipping StartClient.");
+            }
+            else
+            {
+                NetworkManager.Singleton.StartClient();
+                Debug.Log("[Client] Client started successfully");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[Client] Error joining relay: {ex.Message}\n{ex.StackTrace}");
+            _alreadyAttemptedJoin = false;
+        }
+    }
     private void HandleLobbyGone(string message)
     {
         StopHeartbeat();
@@ -269,7 +369,7 @@ public class LobbyFeatures : MonoBehaviour
         return AuthenticationService.Instance.PlayerId == currentLobby.HostId;
     }
 
-    async void KickOutPlayerAsync(string playerId)
+    async void KickOutPlayerAsync(String playerId)
     {
         if (!IsHost()) { debugText.text = "Only host can kick players out"; return; }
         try
@@ -284,38 +384,75 @@ public class LobbyFeatures : MonoBehaviour
     }
     public async void StartGame()
     {
-        Debug.Log("Starting game");
         if (!IsHost()) return;
-
-        // Pick a random catcher from the player list
-        var players = currentLobby.Players;
-        string catcherPlayerId = players[Random.Range(0, players.Count)].Id;
-
-        // Create relay allocation and get join code
-        int maxPlayers = currentLobby.MaxPlayers;
-        string relayJoinCode = await RelayManager.CreateRelayAndGetJoinCode(maxPlayers);
-
-        // Store both in lobby data so all clients can read them
-        await LobbyService.Instance.UpdateLobbyAsync(currentLobby.Id, new UpdateLobbyOptions
+        startGameButton.GetComponent<Button>().interactable = false;
+        if (gameSessionContainer == null)
         {
-            Data = new Dictionary<string, DataObject>
-        {
-            {
-                "RelayJoinCode", new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode)
-            },
-            {
-                "CatcherPlayerId", new DataObject(DataObject.VisibilityOptions.Member, catcherPlayerId)
-            }
+            Debug.LogError("[Host] gameSessionContainer not assigned!");
+            return;
         }
-        });
+        if (lobbyUIContainer == null)
+        {
+            Debug.LogError("[Host] lobbyUIContainer not assigned!");
+            return;
+        }
 
-        // Store locally for this player (host)
+        var players = currentLobby.Players;
+        string catcherPlayerId = players[UnityEngine.Random.Range(0, players.Count)].Id;
+
+        int maxPlayers = currentLobby.MaxPlayers;
+
+        Debug.Log("[Host] Creating relay allocation...");
+        string relayJoinCode = await RelayManager.CreateRelayAndGetJoinCode(maxPlayers);
+        if (relayJoinCode == null)
+        {
+            Debug.LogError("[Host] Failed to create relay");
+            return;
+        }
+
         GameSessionData.Instance.CatcherPlayerId = catcherPlayerId;
         GameSessionData.Instance.IsRelayHost = true;
 
-        // Start host and load game scene
+        // ── STEP 1: Activate game session BEFORE StartHost ─────────────────────
+        // This ensures Netcode_Functions.OnNetworkSpawn() registers the
+        // ConnectionApprovalCallback BEFORE any client attempts to connect.
+        Debug.Log("[Host] Activating game session container...");
+        lobbyUIContainer.SetActive(false);
+        gameSessionContainer.SetActive(true);
+
+        // ── STEP 2: Start host (approval callback is now ready) ─────────────────
+        Debug.Log("[Host] Starting host...");
         NetworkManager.Singleton.StartHost();
-        NetworkManager.Singleton.SceneManager.LoadScene("GameSessionScene",
-            UnityEngine.SceneManagement.LoadSceneMode.Single);
+
+        // ── STEP 3: Wait for the host to fully initialise ───────────────────────
+        Debug.Log("[Host] Host started, waiting for full initialisation...");
+        await System.Threading.Tasks.Task.Delay(2000);
+
+        // ── STEP 4: Only NOW broadcast the relay code so clients connect AFTER
+        //           the host approval callback is guaranteed to be registered ───
+        Debug.Log("[Host] Broadcasting relay join code to clients...");
+        await LobbyService.Instance.UpdateLobbyAsync(currentLobby.Id, new UpdateLobbyOptions
+        {
+            Data = new Dictionary<string, DataObject>
+            {
+                { "RelayJoinCode", new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode) },
+                { "CatcherPlayerId", new DataObject(DataObject.VisibilityOptions.Member, catcherPlayerId) }
+            }
+        });
+
+        Debug.Log("[Host] Game started!");
+        
+        // Give players time to spawn and receive the player object from NetworkManager
+        await System.Threading.Tasks.Task.Delay(1000);
+        
+        // NOW spawn the actual gameplay prefabs (Catcher/Switcher)
+        //SpawnGameplayPrefabs();
+    }
+
+    private void SpawnGameplayPrefabs()
+    {
+        Debug.Log("[Host] Spawning gameplay prefabs...");
+        // Instantiate and configure Catcher/Switcher prefabs based on GameSessionData
+        NetworkManager.Singleton.SpawnManager.InstantiateAndSpawn(PlayerPrefab);
     }
 }

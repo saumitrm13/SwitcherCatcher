@@ -1,4 +1,3 @@
-﻿
 using System;
 using System.Collections;
 using Unity.Cinemachine;
@@ -9,8 +8,8 @@ using UnityEngine.InputSystem;
 
 public class AnimationAndMovementControllerNetwork : NetworkBehaviour
 {
-    [SerializeField] CinemachineCamera FLCam;
-    [SerializeField] AudioListener listener;
+    [SerializeField]public CinemachineCamera FLCam;
+    [SerializeField]public AudioListener listener;
     CharacterInputs characterInputs;
     Vector2 currentMovementInput;
     Vector3 currentMovement;
@@ -20,8 +19,8 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
     //[SerializeField] GameObject throwablePrefab;
     bool isMovementPressed;
     bool isRunPressed;
-    CharacterController characterController;
-    Animator animator;
+    public CharacterController characterController;
+    public Animator animator;
     bool isJumpPressed = false;
     //bool isJumping = false;
     bool isJumpAnimating = false;
@@ -41,55 +40,93 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
     int isFallingHash;
     //int isAttackingHash;
     float gravity = -9.8f;
-    Netcode_Functions netcode_functions;
 
 
     public override void OnNetworkSpawn()
     {
-        characterInputs = FindAnyObjectByType<EnableInputSystem>().GetComponent<EnableInputSystem>().characterInputs;
-
-        characterController = GetComponent<CharacterController>();
-        animator = GetComponent<Animator>();
-
-
-
-        isWalkingHash = Animator.StringToHash("isWalking");
-        isRunningHash = Animator.StringToHash("isRunning");
-        isFallingHash = Animator.StringToHash("isFalling");
-        //isJumpingHash = Animator.StringToHash("isJumping");
-        //isAttackingHash = Animator.StringToHash("isAttacking");
-
-        characterInputs.CharacterControls.Move.started += onMovementInput;
-        characterInputs.CharacterControls.Move.canceled += onMovementInput;
-        characterInputs.CharacterControls.Move.performed += onMovementInput;
-        characterInputs.CharacterControls.Run.started += onRun;
-        characterInputs.CharacterControls.Run.canceled += onRun;
-        //characterInputs.CharacterControls.Jump.started += onJump;
-        //characterInputs.CharacterControls.Jump.canceled += onJump;
-        //characterInputs.CharacterControls.Attack.started += OnAttack;
-        //characterInputs.CharacterControls.Attack.canceled += OnAttack;
-
-
-        //setUpJumpVariables();
-        if (IsOwner)
+        try
         {
-            FLCam.Priority = 1;
-            listener.enabled = true;
-            RegisterAuthIdServerRpc(AuthenticationService.Instance.PlayerId);
-        }
-        else
-        {
-            FLCam.Priority = 0;
-        }
+            Debug.Log($"AnimationAndMovementControllerNetwork.OnNetworkSpawn() - Animator: {animator}, CharacterController: {characterController}");
+            
+            // If characterController isn't assigned in inspector, try to get it
+            if (characterController == null)
+            {
+                characterController = GetComponent<CharacterController>();
+                if (characterController == null)
+                {
+                    Debug.LogError("CharacterController not found! Assign it in the Inspector or ensure it's on this GameObject.");
+                    return;
+                }
+            }
+            
+            // If animator isn't assigned in inspector, try to get it
+            if (animator == null)
+            {
+                animator = GetComponent<Animator>();
+                if (animator == null)
+                {
+                    Debug.LogError("Animator not found! Assign it in the Inspector or ensure it's on this GameObject.");
+                    return;
+                }
+            }
+            
+            // Find EnableInputSystem
+            var enableInputSystem = FindAnyObjectByType<EnableInputSystem>();
+            if (enableInputSystem == null)
+            {
+                Debug.LogWarning("EnableInputSystem not found in scene! Will retry in Update.");
+            }
+            else
+            {
+                characterInputs = enableInputSystem.GetComponent<EnableInputSystem>().characterInputs;
+                if (characterInputs != null)
+                {
+                    characterInputs.CharacterControls.Move.started += onMovementInput;
+                    characterInputs.CharacterControls.Move.canceled += onMovementInput;
+                    characterInputs.CharacterControls.Move.performed += onMovementInput;
+                    characterInputs.CharacterControls.Run.started += onRun;
+                    characterInputs.CharacterControls.Run.canceled += onRun;
+                    Debug.Log("Input controls registered successfully");
+                }
+            }
 
-        base.OnNetworkSpawn();
+            isWalkingHash = Animator.StringToHash("isWalking");
+            isRunningHash = Animator.StringToHash("isRunning");
+            isFallingHash = Animator.StringToHash("isFalling");
+
+            if (IsOwner)
+            {
+                if (FLCam == null)
+                    Debug.LogError("[AnimationController] FLCam is not assigned in the Inspector!");
+                else
+                    FLCam.Priority = 1;
+
+                if (listener == null)
+                    Debug.LogError("[AnimationController] AudioListener is not assigned in the Inspector!");
+                else
+                    listener.enabled = true;
+
+                Debug.Log("Owner initialized");
+            }
+            else
+            {
+                if (FLCam == null)
+                    Debug.LogError("[AnimationController] FLCam is not assigned in the Inspector!");
+                else
+                    FLCam.Priority = 0;
+
+                Debug.Log("Non-owner initialized");
+            }
+
+            base.OnNetworkSpawn();
+            Debug.Log("OnNetworkSpawn completed successfully");
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"Error in OnNetworkSpawn: {ex.Message}\n{ex.StackTrace}");
+        }
     }
-    [ServerRpc]
-    void RegisterAuthIdServerRpc(string authId, ServerRpcParams rpcParams = default)
-    {
-        Netcode_Functions.Instance.RegisterClientAuthId(
-            rpcParams.Receive.SenderClientId, authId);
-    }
+
     //private void OnAttack(InputAction.CallbackContext context)
     //{
     //    isAttackPressed = context.ReadValueAsButton();
@@ -160,41 +197,32 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
 
     void handleAnimation()
     {
+        // Safety check - animator must be initialized
+        if (animator == null)
+        {
+            Debug.LogWarning("Animator is null in handleAnimation()");
+            return;
+        }
+
         bool isWalking = animator.GetBool(isWalkingHash);
         bool isRunning = animator.GetBool(isRunningHash);
 
         if (!isWalking && isMovementPressed)
         {
             animator.SetBool(isWalkingHash, true);
-            // Mathf.Lerp(animator.GetFloat("Velocity"), 0.05f, 0.01f);
-            //animator.SetFloat("Velocity", 0.05f);
         }
         else if (!isMovementPressed && isWalking)
         {
             animator.SetBool(isWalkingHash, false);
-            //Mathf.Lerp(animator.GetFloat("Velocity"), 0f, 0.01f);
-            //animator.SetFloat("Velocity", 0.0f);
         }
         if ((isMovementPressed && isRunPressed) && !isRunning)
         {
             animator.SetBool(isRunningHash, true);
-            //Mathf.Lerp(animator.GetFloat("Velocity"), 0.3f, 0.05f);
-            //animator.SetFloat("Velocity", 0.3f);
         }
         else if ((!isMovementPressed || !isRunPressed) && isRunning)
         {
             animator.SetBool(isRunningHash, false);
-            //Mathf.Lerp(animator.GetFloat("Velocity"), 0.05f, 0.05f);
-            // if (isMovementPressed)
-            // {
-            //     animator.SetFloat("Velocity", 0.05f);
-            // }
-            // else
-            // {
-            //     animator.SetFloat("Velocity", 0f);
-            //  }
         }
-
     }
 
     void handleRotation()
@@ -319,7 +347,7 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
     }
     IEnumerator fallCoroutine()
     {
-        
+
         yield return new WaitForSeconds(fallRecoveryTime);
         isFalling = false;
         animator.SetBool(isFallingHash, false);

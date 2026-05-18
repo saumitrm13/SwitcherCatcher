@@ -12,47 +12,42 @@ public static class RelayManager
     {
         try
         {
-            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxPlayers - 1);
-            string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+            Debug.Log($"[Host] Creating Relay allocation for {maxPlayers} players...");
 
-            // Get the NetworkManager and check if it exists
+            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxPlayers - 1);
+            Debug.Log($"[Host] Allocation created: {allocation.AllocationId}");
+
+            string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+            Debug.Log($"[Host] Join code received: {joinCode}");
+
             NetworkManager networkManager = NetworkManager.Singleton;
             if (networkManager == null)
             {
-                Debug.LogError("NetworkManager.Singleton is null. Make sure NetworkManager is initialized.");
+                Debug.LogError("[Host] NetworkManager.Singleton is null.");
                 return null;
             }
 
-            // Get the UnityTransport component
             var transport = networkManager.GetComponent<UnityTransport>();
             if (transport == null)
             {
-                Debug.LogError("UnityTransport component not found on NetworkManager. Make sure it's attached.");
+                Debug.LogError("[Host] UnityTransport not found on NetworkManager.");
                 return null;
             }
 
-            // Verify allocation data
-            if (allocation?.RelayServer == null)
-            {
-                Debug.LogError("Relay allocation or server data is null.");
-                return null;
-            }
+            // ── Use the modern RelayServerData struct ───────────────────────────
+            // The old SetRelayServerData(ip, port, ...) overload is DEPRECATED in
+            // Unity Transport 2.x and encodes DTLS data incorrectly, which causes
+            // the relay server to actively reject connecting clients.
+            var relayServerData = AllocationUtils.ToRelayServerData(allocation, "dtls");
+            transport.SetRelayServerData(relayServerData);
 
-            transport.SetRelayServerData(
-                allocation.RelayServer.IpV4,
-                (ushort)allocation.RelayServer.Port,
-                allocation.AllocationIdBytes,
-                allocation.Key,
-                allocation.ConnectionData,
-                null,
-                true
-            );
-
+            Debug.Log($"[Host] Relay configured successfully (DTLS) - " +
+                      $"IP: {allocation.RelayServer.IpV4}, Port: {allocation.RelayServer.Port}");
             return joinCode;
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"Error in CreateRelayAndGetJoinCode: {ex.Message}\n{ex.StackTrace}");
+            Debug.LogError($"[Host] Error in CreateRelayAndGetJoinCode: {ex.Message}\n{ex.StackTrace}");
             return null;
         }
     }
@@ -61,35 +56,37 @@ public static class RelayManager
     {
         try
         {
+            Debug.Log($"[Client] Attempting to join Relay with code: {joinCode}");
+
             JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+            Debug.Log($"[Client] Successfully joined allocation: {joinAllocation.AllocationId}");
 
             NetworkManager networkManager = NetworkManager.Singleton;
             if (networkManager == null)
             {
-                Debug.LogError("NetworkManager.Singleton is null.");
+                Debug.LogError("[Client] NetworkManager.Singleton is null.");
                 return;
             }
 
             var transport = networkManager.GetComponent<UnityTransport>();
             if (transport == null)
             {
-                Debug.LogError("UnityTransport component not found on NetworkManager.");
+                Debug.LogError("[Client] UnityTransport not found on NetworkManager.");
                 return;
             }
 
-            transport.SetRelayServerData(
-                joinAllocation.RelayServer.IpV4,
-                (ushort)joinAllocation.RelayServer.Port,
-                joinAllocation.AllocationIdBytes,
-                joinAllocation.Key,
-                joinAllocation.ConnectionData,
-                joinAllocation.HostConnectionData,
-                true
-            );
+            // ── Use the modern RelayServerData struct ───────────────────────────
+            // The old overload mis-encodes HostConnectionData for DTLS, causing
+            // the relay to reject the connection at transport level.
+            var relayServerData = AllocationUtils.ToRelayServerData(joinAllocation, "dtls");
+            transport.SetRelayServerData(relayServerData);
+
+            Debug.Log($"[Client] Relay configured successfully (DTLS) - " +
+                      $"IP: {joinAllocation.RelayServer.IpV4}, Port: {joinAllocation.RelayServer.Port}");
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"Error in JoinRelay: {ex.Message}\n{ex.StackTrace}");
+            Debug.LogError($"[Client] Error in JoinRelay: {ex.Message}\n{ex.StackTrace}");
         }
     }
 }

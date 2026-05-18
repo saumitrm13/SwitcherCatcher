@@ -274,8 +274,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7168972530220278455}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.2534013, y: -0, z: -0, w: 0.9673613}
-  m_LocalPosition: {x: 0, y: 2.25, z: -4}
+  m_LocalRotation: {x: 0.34266144, y: 0.0000000115971766, z: -0.0000000042299937, w: 0.93945897}
+  m_LocalPosition: {x: -0.61, y: 6.39, z: -6.77}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1574,6 +1574,8 @@ MonoBehaviour:
   listener: {fileID: 5417672378845712598}
   rotationFactorPerFrame: 15
   movementSpeed: 3
+  characterController: {fileID: 2735298049828902638}
+  animator: {fileID: 7776193074342476770}
   maxJumpTime: 2
   maxJumpHeight: 40
   AttackDuration: 0.6
@@ -1657,8 +1659,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   isInSafeZone:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
     m_InternalValue: 1
   isEligibleToStealNet:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
     m_InternalValue: 0
   thisSwitcherPointer: {fileID: 8565176392433506332}
   successVFX: {fileID: 4884347376189634576}
@@ -1666,8 +1674,14 @@ MonoBehaviour:
   taskTimeLimit: 250
   resourceVisualsParent: {fileID: 8639399826084888909}
   ownedPoleType:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
     m_InternalValue: 0
   targetPoleType:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
     m_InternalValue: 0
 --- !u!114 &7686719620021947678
 MonoBehaviour:

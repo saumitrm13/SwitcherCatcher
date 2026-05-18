@@ -34,19 +34,37 @@ public class SwitcherRquestHandler : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        SwitcherScript.OnSwitcherPoleAssigned += AssignThisPole;
+        try
+        {
+            SwitcherScript.OnSwitcherPoleAssigned += AssignThisPole;
 
-        debugText = GameObject.Find("DebugText2").GetComponent<TextMeshProUGUI>();
-        thisClientRpcParams = new ClientRpcParams
-        {
-            Send = new ClientRpcSendParams
+            // Safe find with null check
+            GameObject debugTextObj = GameObject.Find("DebugText2");
+            if (debugTextObj != null)
             {
-                TargetClientIds = new ulong[] { OwnerClientId }
+                debugText = debugTextObj.GetComponent<TextMeshProUGUI>();
             }
-        };
-        if (IsOwner)
+            else
+            {
+                Debug.LogWarning("DebugText2 GameObject not found!");
+            }
+
+            thisClientRpcParams = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { OwnerClientId }
+                }
+            };
+
+            if (IsOwner)
+            {
+                LocalOwnerInstance = this;
+            }
+        }
+        catch (System.Exception ex)
         {
-            LocalOwnerInstance = this;
+            Debug.LogError($"Error in SwitcherRquestHandler.OnNetworkSpawn: {ex.Message}\n{ex.StackTrace}");
         }
     }
     public override void OnNetworkDespawn()

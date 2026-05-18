@@ -44,36 +44,112 @@ public class SwitcherScript : NetworkBehaviour
         PoleType.None, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public override void OnNetworkSpawn()
     {   
-        Debug.Log("Switcher assigned");
-        thisSwitcher = new Switcher(OwnerClientId,this);
-        
-        Poles = new List<PoleScript>(FindObjectsByType<PoleScript>(FindObjectsSortMode.None));
-        debugText = GameObject.Find("DebugText").GetComponent<TextMeshProUGUI>();
-        ownedPoleText = GameObject.Find("DebugText3").GetComponent<TextMeshProUGUI>();
-        triggerCaseText = GameObject.Find("TriggerCaseText").GetComponent<TextMeshProUGUI>();
-        clientRpcParams = new ClientRpcParams
+        try
         {
-            Send = new ClientRpcSendParams
+            // Prevent double-spawning
+            // If this is not the owner's local instance, it shouldn't initialize input systems
+            if (IsOwner && GetComponent<AnimationAndMovementControllerNetwork>() != null)
             {
-                TargetClientIds = new ulong[] { OwnerClientId }
+                // Check if we already have a catcher on this player
+                var catcherScript = FindObjectOfType<CatcherScript>();
+                if (catcherScript != null && catcherScript.OwnerClientId == OwnerClientId)
+                {
+                    Debug.LogWarning("This client already has a Catcher - destroying this Switcher");
+                    GetComponent<NetworkObject>().Despawn();
+                    return;
+                }
             }
-        };
 
-        if (IsServer)
-        {
-            CatcherScript.cursedPoleType.OnValueChanged += OnCursedPoleChanged;
+            Debug.Log("Switcher assigned");
+            thisSwitcher = new Switcher(OwnerClientId, this);
+            
+            // Defer pole finding - they may not exist yet
+            StartCoroutine(DeferredPoleInitialization());
+            
+            // Safe find with null checks for UI
+            GameObject debugTextObj = GameObject.Find("DebugText");
+            if (debugTextObj != null)
+            {
+                debugText = debugTextObj.GetComponent<TextMeshProUGUI>();
+            }
+            else
+            {
+                Debug.LogWarning("DebugText GameObject not found!");
+            }
+            
+            GameObject ownedPoleTextObj = GameObject.Find("DebugText3");
+            if (ownedPoleTextObj != null)
+            {
+                ownedPoleText = ownedPoleTextObj.GetComponent<TextMeshProUGUI>();
+            }
+            else
+            {
+                Debug.LogWarning("DebugText3 GameObject not found!");
+            }
+            
+            GameObject triggerCaseTextObj = GameObject.Find("TriggerCaseText");
+            if (triggerCaseTextObj != null)
+            {
+                triggerCaseText = triggerCaseTextObj.GetComponent<TextMeshProUGUI>();
+            }
+            else
+            {
+                Debug.LogWarning("TriggerCaseText GameObject not found!");
+            }
+
+            clientRpcParams = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { OwnerClientId }
+                }
+            };
+
+            if (IsServer)
+            {
+                //CatcherScript.cursedPoleType.OnValueChanged += OnCursedPoleChanged;
+            }
+            
+            if (!IsOwner)
+            {
+                if (thisSwitcherPointer != null)
+                {
+                    thisSwitcherPointer.SetActive(false);
+                }
+            }
+            else
+            {
+                localOwnerInstance = this;
+            }
         }
-        if (!IsOwner)
+        catch (System.Exception ex)
         {
-            thisSwitcherPointer.SetActive(false);
-        }
-        else
-        {
-            localOwnerInstance = this;
+            Debug.LogError($"Error in SwitcherScript.OnNetworkSpawn: {ex.Message}\n{ex.StackTrace}");
         }
     }
 
-    private void OnCursedPoleChanged(PoleType oldValue, PoleType newValue)
+    private System.Collections.IEnumerator DeferredPoleInitialization()
+    {
+        // Wait a frame or two for poles to be spawned
+        yield return new WaitForSeconds(0.5f);
+        
+        Poles = new List<PoleScript>(FindObjectsByType<PoleScript>(FindObjectsSortMode.None));
+        
+        if (Poles.Count == 0)
+        {
+            Debug.LogWarning("No Poles found in scene!");
+        }
+        else
+        {
+            Debug.Log($"Found {Poles.Count} poles");
+        }
+    }
+
+  
+   
+
+
+        private void OnCursedPoleChanged(PoleType oldValue, PoleType newValue)
     {
         UpdateStealEligibility();
     }

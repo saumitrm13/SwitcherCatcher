@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -25,6 +25,7 @@ public class LobbyCanvasFunction : MonoBehaviour
     [SerializeField] private GameObject[] allPanels;
     public TextMeshProUGUI userNameText;
     public TextMeshProUGUI debugText;
+    
 
     private const string PlayerNameDataKey = "PlayerName";
     private const string PlayerNamePrefsKey = "PlayerName";
@@ -119,11 +120,53 @@ public class LobbyCanvasFunction : MonoBehaviour
             currentLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayersInALobby, options);
             LobbyFeatures.SetCurrentLobby(currentLobby);
 
-            // Subscribe once, right after the lobby is created.
+            // ── Create relay immediately on lobby creation ──
+            Debug.Log("[Host] Creating relay allocation for private lobby...");
+            string relayJoinCode = await RelayManager.CreateRelayAndGetJoinCode(maxPlayersInALobby);
+            if (relayJoinCode == null)
+            {
+                Debug.LogError("[Host] Failed to create relay for private lobby");
+                await LobbyService.Instance.DeleteLobbyAsync(currentLobby.Id);
+                LobbyFeatures.SetCurrentLobby(null);
+                currentLobby = null;
+                debugText.text = "Failed to create relay";
+                return;
+            }
+
+            // Store relay code in lobby data
+            await LobbyService.Instance.UpdateLobbyAsync(currentLobby.Id, new UpdateLobbyOptions
+            {
+                Data = new Dictionary<string, DataObject>
+                {
+                    { "RelayJoinCode", new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode) }
+                }
+            });
+
+            // Refresh lobby reference to include relay code
+            currentLobby = await LobbyService.Instance.GetLobbyAsync(currentLobby.Id);
+            LobbyFeatures.SetCurrentLobby(currentLobby);
+
+            // Subscribe once, right after the lobby is created
             await LobbyFeatures.SubscribeToCurrentLobbyEvents();
 
+            // ── Start the host ──
+            Debug.Log("[Host] Starting NetworkManager as host...");
+            GameSessionData.Instance.IsRelayHost = true;
+            
+            //if (LobbyDataContainer == null)
+            //{
+            //    Debug.LogError("[Host] LobbyDataContainer not assigned!");
+            //    return;
+            //}
+            
+            //// Hide lobby UI and activate game session
+            //LobbyDataContainer.SetActive(false);
+            //if (GameSessionObjects != null)
+            //    GameSessionObjects.SetActive(true);
+            
+            NetworkManager.Singleton.StartHost();
             ActivatePanel(currentLobbyInfoPanel);
-            Debug.Log($"Lobby created: {lobbyName}, Code: {currentLobby.LobbyCode}");
+            Debug.Log($"[Host] Private Lobby created and host started: {lobbyName}, Relay Code: {relayJoinCode}");
         }
         catch (Exception e)
         {
@@ -156,11 +199,53 @@ public class LobbyCanvasFunction : MonoBehaviour
             currentLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayersInALobby, options);
             LobbyFeatures.SetCurrentLobby(currentLobby);
 
-            // Subscribe once, right after the lobby is created.
+            // ── Create relay immediately on lobby creation ──
+            Debug.Log("[Host] Creating relay allocation for public lobby...");
+            string relayJoinCode = await RelayManager.CreateRelayAndGetJoinCode(maxPlayersInALobby);
+            if (relayJoinCode == null)
+            {
+                Debug.LogError("[Host] Failed to create relay for public lobby");
+                await LobbyService.Instance.DeleteLobbyAsync(currentLobby.Id);
+                LobbyFeatures.SetCurrentLobby(null);
+                currentLobby = null;
+                debugText.text = "Failed to create relay";
+                return;
+            }
+
+            // Store relay code in lobby data
+            await LobbyService.Instance.UpdateLobbyAsync(currentLobby.Id, new UpdateLobbyOptions
+            {
+                Data = new Dictionary<string, DataObject>
+                {
+                    { "RelayJoinCode", new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode) }
+                }
+            });
+
+            // Refresh lobby reference to include relay code
+            currentLobby = await LobbyService.Instance.GetLobbyAsync(currentLobby.Id);
+            LobbyFeatures.SetCurrentLobby(currentLobby);
+
+            // Subscribe once, right after the lobby is created
             await LobbyFeatures.SubscribeToCurrentLobbyEvents();
 
+            // ── Start the host ──
+            Debug.Log("[Host] Starting NetworkManager as host...");
+            GameSessionData.Instance.IsRelayHost = true;
+            
+            //if (LobbyDataContainer == null)
+            //{
+            //    Debug.LogError("[Host] LobbyDataContainer not assigned!");
+            //    return;
+            //}
+            
+            //// Hide lobby UI and activate game session
+            //LobbyDataContainer.SetActive(false);
+            //if (GameSessionObjects != null)
+            //    GameSessionObjects.SetActive(true);
+            
+            NetworkManager.Singleton.StartHost();
             ActivatePanel(currentLobbyInfoPanel);
-            Debug.Log($"Lobby created: {lobbyName}, Code: {currentLobby.LobbyCode}");
+            Debug.Log($"[Host] Public Lobby created and host started: {lobbyName}, Relay Code: {relayJoinCode}");
         }
         catch (Exception e)
         {
@@ -191,11 +276,41 @@ public class LobbyCanvasFunction : MonoBehaviour
             currentLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, options);
             LobbyFeatures.SetCurrentLobby(currentLobby);
 
-            // Subscribe once, right after joining.
+            // ── Join relay using code from lobby data ──
+            if (currentLobby.Data != null && currentLobby.Data.ContainsKey("RelayJoinCode"))
+            {
+                string relayJoinCode = currentLobby.Data["RelayJoinCode"].Value;
+                Debug.Log("[Client] Relay code found, joining relay...");
+                
+                GameSessionData.Instance.IsRelayHost = false;
+                await RelayManager.JoinRelay(relayJoinCode);
+                
+                // Hide lobby UI and activate game session
+                //if (LobbyDataContainer == null)
+                //{
+                //    Debug.LogError("[Client] LobbyDataContainer not assigned!");
+                //    return;
+                //}
+                
+                //LobbyDataContainer.SetActive(false);
+                //if (GameSessionObjects != null)
+                //    GameSessionObjects.SetActive(true);
+                
+                // Start as client
+                Debug.Log("[Client] Starting NetworkManager as client...");
+                NetworkManager.Singleton.StartClient();
+            }
+            else
+            {
+                Debug.LogWarning("[Client] No relay code found in lobby data");
+                debugText.text = "Failed to join lobby - relay not initialized";
+                return;
+            }
+
+            // Subscribe once, right after joining
             await LobbyFeatures.SubscribeToCurrentLobbyEvents();
 
-            ActivatePanel(currentLobbyInfoPanel);
-            Debug.Log($"Joined lobby with code: {lobbyCode}");
+            Debug.Log($"[Client] Joined lobby with code: {lobbyCode}");
         }
         catch (Exception e)
         {
@@ -297,7 +412,7 @@ public class LobbyCanvasFunction : MonoBehaviour
         }
         userNameText.text = "Hi " + savedPlayerName + "!";
         ActivatePanel(FirstPanel);
-        if (!string.IsNullOrWhiteSpace(savedPlayerName) && string.IsNullOrWhiteSpace(playerNameInputField.text))
+        if (!string.IsNullOrWhiteSpace(savedPlayerName)  && string.IsNullOrWhiteSpace(playerNameInputField.text))
             playerNameInputField.text = savedPlayerName;
     }
 

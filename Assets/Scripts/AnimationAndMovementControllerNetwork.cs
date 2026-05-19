@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections;
 using Unity.Cinemachine;
 using Unity.Netcode;
@@ -75,7 +74,7 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
         {
             FLCam.Priority = 1;
             listener.enabled = true;
-            RegisterAuthIdServerRpc(AuthenticationService.Instance.PlayerId);
+            // REMOVED: RegisterAuthIdServerRpc call - no longer needed with default NetworkManager player spawning
         }
         else
         {
@@ -84,12 +83,12 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
 
         base.OnNetworkSpawn();
     }
-    [ServerRpc]
-    void RegisterAuthIdServerRpc(string authId, ServerRpcParams rpcParams = default)
-    {
-        Netcode_Functions.Instance.RegisterClientAuthId(
-            rpcParams.Receive.SenderClientId, authId);
-    }
+    // [ServerRpc]
+    // void RegisterAuthIdServerRpc(string authId, ServerRpcParams rpcParams = default)
+    // {
+    //     Netcode_Functions.Instance.RegisterClientAuthId(
+    //         rpcParams.Receive.SenderClientId, authId);
+    // }
     //private void OnAttack(InputAction.CallbackContext context)
     //{
     //    isAttackPressed = context.ReadValueAsButton();

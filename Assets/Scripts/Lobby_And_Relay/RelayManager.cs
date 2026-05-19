@@ -38,15 +38,8 @@ public static class RelayManager
                 return null;
             }
 
-            transport.SetRelayServerData(
-                allocation.RelayServer.IpV4,
-                (ushort)allocation.RelayServer.Port,
-                allocation.AllocationIdBytes,
-                allocation.Key,
-                allocation.ConnectionData,
-                null,
-                true
-            );
+            var relayServerData = AllocationUtils.ToRelayServerData(allocation, "dtls");
+            transport.SetRelayServerData(relayServerData);
 
             return joinCode;
         }
@@ -77,15 +70,8 @@ public static class RelayManager
                 return;
             }
 
-            transport.SetRelayServerData(
-                joinAllocation.RelayServer.IpV4,
-                (ushort)joinAllocation.RelayServer.Port,
-                joinAllocation.AllocationIdBytes,
-                joinAllocation.Key,
-                joinAllocation.ConnectionData,
-                joinAllocation.HostConnectionData,
-                true
-            );
+            var relayServerData = AllocationUtils.ToRelayServerData(joinAllocation, "dtls");
+            transport.SetRelayServerData(relayServerData);
         }
         catch (System.Exception ex)
         {

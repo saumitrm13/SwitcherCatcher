@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TMPro;
+using Unity.Netcode;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
@@ -102,14 +103,32 @@ public class OpenLobbyFunctions : MonoBehaviour
             Lobby joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId, options);
             LobbyFeatures.SetCurrentLobby(joinedLobby);
 
+            // ── NEW: Join relay using code from lobby data ──
+            if (joinedLobby.Data != null && joinedLobby.Data.ContainsKey("RelayJoinCode"))
+            {
+                string relayJoinCode = joinedLobby.Data["RelayJoinCode"].Value;
+                Debug.Log("[Client] Relay code found, joining relay...");
+
+                GameSessionData.Instance.IsRelayHost = false;
+                await RelayManager.JoinRelay(relayJoinCode);
+                Debug.Log("[Client] Starting NetworkManager as client...");
+                NetworkManager.Singleton.StartClient();
+            }
+            else
+            {
+                Debug.LogWarning("[Client] No relay code found in lobby data");
+            }
+
             // Subscribe once, right after joining by ID.
             await LobbyFeatures.SubscribeToCurrentLobbyEvents();
 
             lobbyCanvasFunction.ActivatePanel(currentLobbyInfoPanel);
+            Debug.Log($"[Client] Joined lobby by ID: {lobbyId}");
         }
         catch (Exception e)
         {
             debugText.text = "Join lobby exception: " + e.Message;
+            Debug.LogError($"Join lobby exception: {e.Message}");
         }
     }
 }

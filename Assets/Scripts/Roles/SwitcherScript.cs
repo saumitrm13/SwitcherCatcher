@@ -73,6 +73,11 @@ public class SwitcherScript : NetworkBehaviour
         }
     }
 
+    private void OnDisable()
+    {
+        if (IsServer)
+            CatcherScript.cursedPoleType.OnValueChanged -= OnCursedPoleChanged;
+    }
     private void OnCursedPoleChanged(PoleType oldValue, PoleType newValue)
     {
         UpdateStealEligibility();
@@ -432,7 +437,7 @@ public class SwitcherScript : NetworkBehaviour
     void UpdateStealEligibility()
     {
         if (!IsServer) return;
-
+        if (thisSwitcher == null || !thisSwitcher.OwnsAPole()) return;
         isEligibleToStealNet.Value =
             (ownedPoleType.Value == CatcherScript.cursedPoleType.Value);
         Debug.Log($"{thisSwitcher.getOwnedPoleType().ToString()} pole owner's eligibility to steal : {isEligibleToStealNet.Value}");

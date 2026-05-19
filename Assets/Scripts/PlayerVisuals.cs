@@ -40,7 +40,9 @@ public class PlayerVisuals : NetworkBehaviour
         switcherBody.SetActive(!catcher);
         catcherBody.SetActive(catcher);
         GetComponent<CatcherScript>().enabled = true;
+        
         GetComponent<SwitcherScript>().enabled = false; 
+
         GetComponent<SwitcherRquestHandler>().enabled = false ;
     }
 

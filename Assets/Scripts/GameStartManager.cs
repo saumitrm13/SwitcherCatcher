@@ -10,6 +10,7 @@ public class GameStartManager : NetworkBehaviour
     [SerializeField] private TextMeshProUGUI debugText;
     [SerializeField] private Button GameStartBtn;
     [SerializeField] private Avatar CatcherAvatar;
+    [SerializeField] private GameObject boundariesBeforeGameStart;
     // Populated externally when players connect (Auth ID → Netcode Client ID)
     // e.g. fill this from your player spawn manager on client connect
     public static Dictionary<string, ulong> AuthToClientId = new();
@@ -34,6 +35,7 @@ public class GameStartManager : NetworkBehaviour
         {
             Debug.LogError($"[GameStartManager] Could not find player object for client {catcherClientId}");
         }
+        StartGameForEveryClientClientRpc();
     }
 
     [ClientRpc]
@@ -42,5 +44,12 @@ public class GameStartManager : NetworkBehaviour
         Debug.Log($"[GameStartManager] I am the Catcher! Client ID: {catcherClientId}");
         debugText.text = $"[GameStartManager] I am the Catcher! Client ID: {catcherClientId}";
         // assign catcher role to local player here
+    }
+
+    [ClientRpc]
+    void StartGameForEveryClientClientRpc()
+    {
+        GameSessionData.Instance.HasGameStartedYet = true;
+        boundariesBeforeGameStart.SetActive(false);
     }
 }

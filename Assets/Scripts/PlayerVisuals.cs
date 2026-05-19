@@ -6,7 +6,8 @@ public class PlayerVisuals : NetworkBehaviour
 {
     [SerializeField] private GameObject switcherBody;
     [SerializeField] private GameObject catcherBody;
-   
+    [SerializeField] private Animator playerPrefabAnimator;
+    [SerializeField] private Avatar catcherAvatar;
     
     // Server writes, all clients read automatically
     private NetworkVariable<bool> isCatcher = new NetworkVariable<bool>(
@@ -36,14 +37,15 @@ public class PlayerVisuals : NetworkBehaviour
     }
 
     private void ApplyVisuals(bool catcher)
-    {
+    {   
+        
+        
         switcherBody.SetActive(!catcher);
         catcherBody.SetActive(catcher);
-        GetComponent<CatcherScript>().enabled = true;
-        
-        GetComponent<SwitcherScript>().enabled = false; 
-
-        GetComponent<SwitcherRquestHandler>().enabled = false ;
+        GetComponent<CatcherScript>().enabled = catcher;
+        GetComponent<SwitcherScript>().enabled = !catcher;
+        GetComponent<SwitcherRquestHandler>().enabled = !catcher;
+        playerPrefabAnimator.avatar = catcher ? catcherAvatar : playerPrefabAnimator.avatar;
     }
 
     // Called by GameStartManager on the server after picking the catcher

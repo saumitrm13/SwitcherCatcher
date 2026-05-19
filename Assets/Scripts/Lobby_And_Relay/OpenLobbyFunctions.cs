@@ -17,6 +17,8 @@ public class OpenLobbyFunctions : MonoBehaviour
     [SerializeField] GameObject currentLobbyInfoPanel;
     [SerializeField] TextMeshProUGUI debugText;
     [SerializeField] Button refreshButton;
+    [SerializeField] GameObject boundariesBeforeGameStart;
+
 
     private List<Lobby> lobbiesInOneSearch = new List<Lobby>();
     private bool _isQuerying = false;
@@ -113,6 +115,7 @@ public class OpenLobbyFunctions : MonoBehaviour
                 await RelayManager.JoinRelay(relayJoinCode);
                 Debug.Log("[Client] Starting NetworkManager as client...");
                 NetworkManager.Singleton.StartClient();
+                boundariesBeforeGameStart.SetActive(true);
             }
             else
             {

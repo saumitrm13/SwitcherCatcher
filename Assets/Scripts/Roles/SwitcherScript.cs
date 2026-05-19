@@ -104,7 +104,10 @@ public class SwitcherScript : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-       
+        if (!isActiveAndEnabled)
+            return;
+
+
         currentColliderTransform = other.gameObject.transform;
         if (!IsServer) { return; }
         if (other.gameObject.CompareTag("Pole")) {
@@ -381,12 +384,15 @@ public class SwitcherScript : NetworkBehaviour
                 Switcher poleOwner = currentPole.GetOwner();
                 
                 currentPole.SnatchPole(thisSwitcher);
-                
+
                 // Break the previous owner's partnership after snatch
-                var allHandlers = FindObjectsByType<SwitcherRquestHandler>(FindObjectsSortMode.None);
-                SwitcherRquestHandler poleOwnerHandler = allHandlers
-                    .FirstOrDefault(h => h.OwnerClientId == poleOwner.getClientID());
-                poleOwnerHandler?.BreakPartnershipIfAllied();
+                if (poleOwner != null)
+                {
+                    var allHandlers = FindObjectsByType<SwitcherRquestHandler>(FindObjectsSortMode.None);
+                    SwitcherRquestHandler poleOwnerHandler = allHandlers
+                        .FirstOrDefault(h => h.OwnerClientId == poleOwner.getClientID());
+                    poleOwnerHandler?.BreakPartnershipIfAllied();
+                }
 
                 ValidateCurrentPoleAndNotifySwitcher(currentPole, true);
                 thisSwitcher.SetCurrentOccupiedPole(currentPole);

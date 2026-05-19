@@ -24,6 +24,9 @@ public class CatcherScript : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        if (!isActiveAndEnabled)
+            return;
+
         if (!IsServer) { return; }
         Debug.Log("Player caught");
         if (other.gameObject.CompareTag("Switcher"))

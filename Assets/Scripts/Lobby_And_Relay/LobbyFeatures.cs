@@ -19,6 +19,7 @@ public class LobbyFeatures : MonoBehaviour
     [SerializeField] private TextMeshProUGUI debugText;
     [SerializeField] private GameObject FirstPanel;
     [SerializeField] GameObject startGameButton;
+  
 
     private const float HeartbeatInterval = 15f;
 
@@ -105,9 +106,12 @@ public class LobbyFeatures : MonoBehaviour
             && !LobbyFeatures.IsHost()) // host already handled this
         {
             string relayJoinCode = currentLobby.Data["RelayJoinCode"].Value;
-            string catcherPlayerId = currentLobby.Data["CatcherPlayerId"].Value;
+            if (currentLobby.Data.ContainsKey("CatcherPlayerId"))
+            {
+                string catcherPlayerId = currentLobby.Data["CatcherPlayerId"].Value;
 
-            GameSessionData.Instance.CatcherPlayerId = catcherPlayerId;
+                GameSessionData.Instance.CatcherPlayerId = catcherPlayerId;
+            }
             GameSessionData.Instance.IsRelayHost = false;
 
             await RelayManager.JoinRelay(relayJoinCode);
@@ -125,6 +129,7 @@ public class LobbyFeatures : MonoBehaviour
         _ = UnsubscribeFromCurrentLobbyEvents();
         SetCurrentLobby(null);
         FindAnyObjectByType<LobbyFeatures>()?.HandleLobbyGone("Your lobby was deleted");
+       
     }
 
     private static void OnDataChangedStatic(
@@ -164,6 +169,8 @@ public class LobbyFeatures : MonoBehaviour
         if (debugText != null) debugText.text = message;
         lobbyFunctions?.ActivatePanel(FirstPanel);
     }
+
+   
 
     // ─── Heartbeat ────────────────────────────────────────────────────────────
 

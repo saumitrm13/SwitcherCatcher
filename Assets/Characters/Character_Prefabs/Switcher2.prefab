@@ -1826,6 +1826,8 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   switcherBody: {fileID: 3906832331240202092}
   catcherBody: {fileID: 6237819421427921498}
+  playerPrefabAnimator: {fileID: 7776193074342476770}
+  catcherAvatar: {fileID: 9000000, guid: 65937e052053c7848af7abda6cd3dc7e, type: 3}
 --- !u!4 &4398533260426404248 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: b8f4021f65f7ea149876b1dd62efe6b0, type: 3}

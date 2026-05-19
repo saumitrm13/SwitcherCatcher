@@ -23,6 +23,7 @@ public class LobbyCanvasFunction : MonoBehaviour
     [SerializeField] private TextMeshProUGUI nameErrorText;
     [SerializeField] private GameObject FirstPanel;
     [SerializeField] private GameObject[] allPanels;
+    [SerializeField] GameObject boundariesBeforeGameStart;
     public TextMeshProUGUI userNameText;
     public TextMeshProUGUI debugText;
     
@@ -165,7 +166,9 @@ public class LobbyCanvasFunction : MonoBehaviour
             //    GameSessionObjects.SetActive(true);
             
             NetworkManager.Singleton.StartHost();
+            boundariesBeforeGameStart.SetActive(true);
             ActivatePanel(currentLobbyInfoPanel);
+            
             Debug.Log($"[Host] Private Lobby created and host started: {lobbyName}, Relay Code: {relayJoinCode}");
         }
         catch (Exception e)
@@ -244,6 +247,7 @@ public class LobbyCanvasFunction : MonoBehaviour
             //    GameSessionObjects.SetActive(true);
             
             NetworkManager.Singleton.StartHost();
+            boundariesBeforeGameStart.SetActive(true);
             ActivatePanel(currentLobbyInfoPanel);
             Debug.Log($"[Host] Public Lobby created and host started: {lobbyName}, Relay Code: {relayJoinCode}");
         }
@@ -299,6 +303,7 @@ public class LobbyCanvasFunction : MonoBehaviour
                 // Start as client
                 Debug.Log("[Client] Starting NetworkManager as client...");
                 NetworkManager.Singleton.StartClient();
+                boundariesBeforeGameStart.SetActive(true);
             }
             else
             {
@@ -361,6 +366,7 @@ public class LobbyCanvasFunction : MonoBehaviour
                 if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
                     NetworkManager.Singleton.Shutdown();
                 ActivatePanel(FirstPanel);
+                boundariesBeforeGameStart.SetActive(true);
             }
             catch (LobbyServiceException e)
             {

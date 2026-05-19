@@ -6,6 +6,7 @@ using System;
 public class CatcherScript : NetworkBehaviour
 {
     Catcher catcher;
+   
     public static NetworkVariable<PoleType> cursedPoleType = new NetworkVariable<PoleType>(PoleType.None);
     [SerializeField] GameObject catcherCanvas;
     private void Awake()
@@ -99,6 +100,11 @@ public class CatcherScript : NetworkBehaviour
 
     public void ChangeCursedPole(PoleType cursedType) {
      
-        cursedPoleType.Value = cursedType;
+        SetCursedPoleTypeServerRpc(cursedType);
+    }
+    [ServerRpc(RequireOwnership = false)]
+    public void SetCursedPoleTypeServerRpc(PoleType newType)
+    {
+        cursedPoleType.Value = newType;
     }
 }

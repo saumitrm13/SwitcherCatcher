@@ -62,7 +62,10 @@ public class CatcherScript : NetworkBehaviour
         if (switcherScript == null) return;
         
         Switcher caughtSwitcher = switcherScript.thisSwitcher;
-
+        if (caughtSwitcher.IsDead())
+        {
+            return;
+        }
         // 1. Break alliance first — while pole references are still valid
         var allHandlers = FindObjectsByType<SwitcherRquestHandler>(FindObjectsSortMode.None);
         var caughtHandler = allHandlers.FirstOrDefault(h => h.OwnerClientId == caughtClientId);
@@ -77,7 +80,7 @@ public class CatcherScript : NetworkBehaviour
         caughtSwitcher.Eliminate();
 
         // 4. Disable SwitcherScript so triggers/updates no longer fire
-        switcherScript.enabled = false;
+        //switcherScript.enabled = false;
 
         // 5. Tell the caught client to play death anim
         var clientRpcParams = new ClientRpcParams

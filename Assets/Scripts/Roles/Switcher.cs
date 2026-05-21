@@ -86,10 +86,16 @@ public class Switcher : Role
         TargetPole = null;
         currentOccupiedPole = null;
         RoleType = RoleType.None;
+        Kill();
     }
 
     public void Kill()
     {
         isDead = true;
+    }
+
+    public bool IsDead()
+    {
+        return isDead;
     }
 }

@@ -133,6 +133,7 @@ public class SwitcherScript : NetworkBehaviour
                     SetResourceVisualsClientRpc(false, clientRpcParams);    
                     thisSwitcher.AssignTargetPole(null);
                     StopTaskTimer();
+                    ScoreManager.Instance?.AddSwitcherSaveScore(OwnerClientId);
                     //NotifyClientAboutThePoleClientRpc($"Well done! You handled the situation", false, clientRpcParams);
                     RoutineAfterGettingResourcesToOwnedPoleClientRpc(clientRpcParams);
                     StartCoroutine(WaitAndAssignNextPole());

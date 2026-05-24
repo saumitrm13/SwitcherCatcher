@@ -62,10 +62,12 @@ public class CatcherScript : NetworkBehaviour
         if (switcherScript == null) return;
         
         Switcher caughtSwitcher = switcherScript.thisSwitcher;
+
         if (caughtSwitcher.IsDead())
         {
             return;
         }
+        ScoreManager.Instance?.AddCatcherCatchScore(OwnerClientId);
         // 1. Break alliance first — while pole references are still valid
         var allHandlers = FindObjectsByType<SwitcherRquestHandler>(FindObjectsSortMode.None);
         var caughtHandler = allHandlers.FirstOrDefault(h => h.OwnerClientId == caughtClientId);

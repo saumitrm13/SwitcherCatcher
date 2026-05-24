@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine;
@@ -32,6 +33,7 @@ public class ScoreboardUI : MonoBehaviour
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     private void OnEnable()
     {
+        GameSessionData.OnPlayerNamesUpdated += RefreshUI;  
         // ScoreManager may not be ready immediately (network startup timing).
         // Poll until it is, then subscribe.
         StartCoroutine(WaitForScoreManagerAndSubscribe());
@@ -39,6 +41,7 @@ public class ScoreboardUI : MonoBehaviour
 
     private void OnDisable()
     {
+        GameSessionData.OnPlayerNamesUpdated += RefreshUI;
         if (ScoreManager.Instance != null)
             ScoreManager.Instance.PlayerScores.OnListChanged -= OnScoresChanged;
     }
@@ -69,17 +72,14 @@ public class ScoreboardUI : MonoBehaviour
         }
     }
 
-    // ── UI refresh ────────────────────────────────────────────────────────────
     private void RefreshUI()
     {
         if (ScoreManager.Instance == null) return;
 
-        // Clear old rows
         foreach (Transform child in rowContainer)
             Destroy(child.gameObject);
 
-        // Rebuild sorted by score descending
-        var scores = new System.Collections.Generic.List<PlayerScore>();
+        var scores = new List<PlayerScore>();
         foreach (var entry in ScoreManager.Instance.PlayerScores)
             scores.Add(entry);
 
@@ -93,19 +93,26 @@ public class ScoreboardUI : MonoBehaviour
         {
             GameObject row = Instantiate(scoreRowPrefab, rowContainer);
 
-            // "You" highlight for the local client
             bool isLocal = entry.ClientId == localClientId;
-            string label = isLocal
-                ? $"<b>You  (ID {entry.ClientId})</b>"
-                : $"Player  {entry.ClientId}";
+            string name = GetPlayerName(entry.ClientId);
+            string label = isLocal ? $"<b>{name} (You)</b>" : name;
 
-            // Find child labels by name — adjust names to match your prefab
             var playerLabel = row.transform.Find("PlayerLabel")?.GetComponent<TextMeshProUGUI>();
             var scoreLabel = row.transform.Find("ScoreLabel")?.GetComponent<TextMeshProUGUI>();
 
             if (playerLabel != null) playerLabel.text = label;
             if (scoreLabel != null) scoreLabel.text = entry.Score.ToString();
         }
+    }
+
+    private string GetPlayerName(ulong clientId)
+    {
+        if (GameSessionData.Instance != null &&
+            GameSessionData.Instance.ClientIdToName.TryGetValue(clientId, out string name) &&
+            !string.IsNullOrEmpty(name))
+            return name;
+
+        return $"Player {clientId}";   // fallback if name hasn't arrived yet
     }
 
     // ── Toast ─────────────────────────────────────────────────────────────────

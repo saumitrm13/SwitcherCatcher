@@ -74,7 +74,8 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
         {
             FLCam.Priority = 1;
             listener.enabled = true;
-            // REMOVED: RegisterAuthIdServerRpc call - no longer needed with default NetworkManager player spawning
+            
+            StartCoroutine(RegisterNameAfterSpawn());
         }
         else
         {
@@ -105,7 +106,22 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
     //{
     //    isJumpPressed = context.ReadValueAsButton();
     //}
+    IEnumerator RegisterNameAfterSpawn()
+    {
+        // Wait one frame so all NetworkObjects finish spawning
+        yield return null;
 
+        string playerName = PlayerPrefs.GetString("PlayerName", $"Player {OwnerClientId}");
+        Netcode_Functions netFunctions = FindAnyObjectByType<Netcode_Functions>();
+        if (netFunctions != null && netFunctions.IsSpawned)
+        {
+            netFunctions.RegisterPlayerNameServerRpc(playerName);
+        }
+        else
+        {
+            Debug.LogWarning("[AnimationController] Netcode_Functions not spawned yet when registering name");
+        }
+    }
     private void onRun(InputAction.CallbackContext context)
     {
         isRunPressed = context.ReadValueAsButton();

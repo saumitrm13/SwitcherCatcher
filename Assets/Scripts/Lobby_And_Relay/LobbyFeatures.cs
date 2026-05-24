@@ -167,6 +167,10 @@ public class LobbyFeatures : MonoBehaviour
     {
         StopHeartbeat();
         if (debugText != null) debugText.text = message;
+        if(NetworkManager.Singleton != null || NetworkManager.Singleton.IsListening)
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
         lobbyFunctions?.ActivatePanel(FirstPanel);
     }
 

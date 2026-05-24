@@ -41,4 +41,21 @@ public class Netcode_Functions : NetworkBehaviour
         response.CreatePlayerObject = true;
         response.Approved = true;
     }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void RegisterPlayerNameServerRpc(string playerName, ServerRpcParams rpcParams = default)
+    {
+        ulong clientId = rpcParams.Receive.SenderClientId;
+        GameSessionData.Instance?.RegisterName(clientId, playerName);
+        SyncPlayerNameClientRpc(clientId, playerName);
+        Debug.Log($"[Netcode_Functions] Registered '{playerName}' for client {clientId}");
+    }
+
+    [ClientRpc]
+    void SyncPlayerNameClientRpc(ulong clientId, string playerName)
+    {
+        // Server already called RegisterName above, skip to avoid double-firing the event
+        if (IsServer) return;
+        GameSessionData.Instance?.RegisterName(clientId, playerName);
+    }
 }

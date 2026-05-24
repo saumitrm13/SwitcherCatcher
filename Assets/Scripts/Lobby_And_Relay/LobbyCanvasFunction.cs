@@ -342,6 +342,9 @@ public class LobbyCanvasFunction : MonoBehaviour
             await LobbyService.Instance.RemovePlayerAsync(LobbyFeatures.GetCurrentLobby().Id, playerId);
             LobbyFeatures.SetCurrentLobby(null);
             currentLobby = null;
+            if (NetworkManager.Singleton != null || NetworkManager.Singleton.IsListening) { 
+                NetworkManager.Singleton.Shutdown();
+            }
             ActivatePanel(FirstPanel);
             debugText.text = "Left lobby successfully";
         }
@@ -396,7 +399,7 @@ public class LobbyCanvasFunction : MonoBehaviour
             playerNameInputField.ActivateInputField();
             return false;
         }
-
+        _localPlayerName = playerName;
         PlayerPrefs.SetString(PlayerNamePrefsKey, playerName);
         PlayerPrefs.Save();
         return true;

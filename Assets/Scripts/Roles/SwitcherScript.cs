@@ -26,6 +26,7 @@ public class SwitcherScript : NetworkBehaviour
     bool isStealingNow = false; 
     Pole currentPole;
     Transform currentColliderTransform;
+    DangerVisuals dangerVisuals;
     ClientRpcParams clientRpcParams = new ClientRpcParams();
     public GameObject thisSwitcherPointer;
     [Header("Particle Systems")]
@@ -106,8 +107,11 @@ public class SwitcherScript : NetworkBehaviour
     {
         if (!isActiveAndEnabled)
             return;
-
-
+        
+        if (!other.gameObject.CompareTag("Pole"))
+        {
+            return;
+        }
         currentColliderTransform = other.gameObject.transform;
         if (!IsServer) { return; }
         if (other.gameObject.CompareTag("Pole")) {
@@ -134,6 +138,7 @@ public class SwitcherScript : NetworkBehaviour
                     thisSwitcher.AssignTargetPole(null);
                     StopTaskTimer();
                     ScoreManager.Instance?.AddSwitcherSaveScore(OwnerClientId);
+                   
                     //NotifyClientAboutThePoleClientRpc($"Well done! You handled the situation", false, clientRpcParams);
                     RoutineAfterGettingResourcesToOwnedPoleClientRpc(clientRpcParams);
                     StartCoroutine(WaitAndAssignNextPole());
@@ -201,8 +206,9 @@ public class SwitcherScript : NetworkBehaviour
         debugText.text = message;
         if (assignPole) {
            
-            AssignTargetPoleToSwitcherServerRpc();
+            
             OnSwitcherPoleAssigned?.Invoke();
+            StartCoroutine(waitAndAssignTargetPole());
         }
     }
 
@@ -217,6 +223,7 @@ public class SwitcherScript : NetworkBehaviour
         }
         else
         {
+            ProcessAfterOwningAPoleClientRpc(clientRpcParams);
             thisSwitcher.AssignPole(currentPole);
             ownedPoleType.Value = currentPole.Type;
             currentPole.AssignOwner(thisSwitcher);
@@ -224,11 +231,17 @@ public class SwitcherScript : NetworkBehaviour
             ChangeClientUIClientRpc(currentPole.Type, clientRpcParams);
             UpdateStealEligibility();
             NotifyClientAboutThePoleClientRpc("Great!... You own a Pole", true, clientRpcParams);
+            
             PlaySuccessVFXClientRpc(clientRpcParams);
             
         }
     }
 
+    IEnumerator waitAndAssignTargetPole()
+    {
+        yield return new WaitForSeconds(15);
+        AssignTargetPoleToSwitcherServerRpc();
+    }
     [ServerRpc]
     void AssignTargetPoleToSwitcherServerRpc()
     {   
@@ -268,9 +281,10 @@ public class SwitcherScript : NetworkBehaviour
             thisSwitcher.AssignTargetPole(targetPole);
             string notification = $"Your pole has a problem. Get to {targetPole.Type} pole quickly to gather resources and come back";
             targetPoleType.Value = targetPole.Type;
+            
             NotifyClientAboutThePoleClientRpc(notification, false, clientRpcParams);
-           
-           
+
+            ShowProblemToPlayerClientRpc();
             StartTaskTimer();  
            
             return;
@@ -342,6 +356,7 @@ public class SwitcherScript : NetworkBehaviour
             targetPoleType.Value = targetPole.Type;
             string notification = $"Your pole has a problem. Get to {targetPole.Type} pole quickly to gather resources and come back";
             NotifyClientAboutThePoleClientRpc(notification, false, clientRpcParams);
+            ShowProblemToPlayerClientRpc(clientRpcParams);
             StartTaskTimer();
             return;
         }
@@ -349,7 +364,7 @@ public class SwitcherScript : NetworkBehaviour
     IEnumerator WaitAndAssignNextPole()
     {   
 
-        yield return new WaitForSeconds(4);
+        yield return new WaitForSeconds(15);
         NonServerRpcAssignTargetPoleToSwitcher();
         
     }
@@ -697,7 +712,21 @@ public class SwitcherScript : NetworkBehaviour
         // NotifyClientAboutThePoleClientRpc($"You got the resources! Now get back to your pole : {thisSwitcher.getOwnedPoleType().ToString()}", false, clientRpcParams);
         debugText.text = $"Well done! You handled the situation";
         currentColliderTransform.Find("ResourceParent").gameObject.SetActive(true);
-    }   
+        dangerVisuals.StopShowingTheProblem();
+    }
+
+    [ClientRpc]
+    void ProcessAfterOwningAPoleClientRpc(ClientRpcParams clientRpcParams = default) {
+        GameObject problemVisuals = currentColliderTransform.Find("ProblemVisual").gameObject;
+        dangerVisuals = problemVisuals.GetComponent<DangerVisuals>();
+        GetComponent<AnimationAndMovementControllerNetwork>().PassFLCamDataToVisuals(dangerVisuals);
+    }
+
+    [ClientRpc]
+    void ShowProblemToPlayerClientRpc(ClientRpcParams clientRpcParams = default)
+    {
+        dangerVisuals.ShowProblem();
+    }
     //[ServerRpc]
     //void RoutineAfterBeingStealVictimServerRpc()
     //{

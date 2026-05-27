@@ -3,20 +3,19 @@ using UnityEngine;
 public class MiniCatcherHandScript : MonoBehaviour
 {
     [SerializeField] DangerVisuals dangerVisuals;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    [SerializeField] ParticleSystem handExplosionEffect;
 
     private void OnTriggerEnter(Collider other)
     {
         dangerVisuals.LaunchFromPool();
+        handExplosionEffect.Play();
+    }
+    private void OnTriggerStay(Collider other)
+    {
+        dangerVisuals.LaunchFromPool();
+    }
+    private void OnTriggerExit(Collider other)
+    {
+        
     }
 }

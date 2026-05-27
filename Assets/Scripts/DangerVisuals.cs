@@ -34,6 +34,8 @@ public class DangerVisuals : MonoBehaviour
     [Tooltip("Apply gravity scale to pooled Rigidbodies.")]
     public float gravityScale = 1f;
 
+    public GameObject miniCatcherOnTopOfTheTower;
+
     public float showProblemForSeconds = 4f;
 
     public GameObject problemSolvedVFX;
@@ -43,6 +45,7 @@ public class DangerVisuals : MonoBehaviour
     private Queue<GameObject> _pool;
     private float _spawnTimer;
     bool _isPoolActive = false; 
+
     void Start()
     {
         InitializePool();
@@ -50,16 +53,16 @@ public class DangerVisuals : MonoBehaviour
 
     void Update()
     {
-        if (_isPoolActive)
-        {
-            _spawnTimer += Time.deltaTime;
+        //if (_isPoolActive)
+        //{
+        //    _spawnTimer += Time.deltaTime;
 
-            if (_spawnTimer >= 1f / spawnRate)
-            {
-                _spawnTimer = 0f;
-                LaunchFromPool();
-            }
-        }
+        //    if (_spawnTimer >= 1f / spawnRate)
+        //    {
+        //        _spawnTimer = 0f;
+        //        LaunchFromPool();
+        //    }
+        //}
     }
 
     // ── Pool Lifecycle ───────────────────────────────────────────────────────
@@ -100,7 +103,7 @@ public class DangerVisuals : MonoBehaviour
 
     // ── Fountain Logic ───────────────────────────────────────────────────────
 
-    void LaunchFromPool()
+    public void LaunchFromPool()
     {
         GameObject obj = GetFromPool();
         if (obj == null) return;
@@ -166,6 +169,7 @@ public class DangerVisuals : MonoBehaviour
     {
         _isPoolActive = showProblem;
         problemSolvedVFX.SetActive(!showProblem);
+        miniCatcherOnTopOfTheTower.SetActive(showProblem);
         if (_characterFLCam != null && _originalTargetTransformForCharacterFLCam != null)
         {
             _characterFLCam.Target.TrackingTarget = transform;

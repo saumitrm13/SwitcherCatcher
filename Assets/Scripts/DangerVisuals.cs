@@ -1,5 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+
+using Unity.Cinemachine;
+
 using UnityEngine;
 
 /// <summary>
@@ -31,10 +34,15 @@ public class DangerVisuals : MonoBehaviour
     [Tooltip("Apply gravity scale to pooled Rigidbodies.")]
     public float gravityScale = 1f;
 
+    public float showProblemForSeconds = 4f;
+
+    public GameObject problemSolvedVFX;
+    CinemachineCamera _characterFLCam;
+    Transform _originalTargetTransformForCharacterFLCam;
     // ── Internal ────────────────────────────────────────────────────────────
     private Queue<GameObject> _pool;
     private float _spawnTimer;
-
+    bool _isPoolActive = false; 
     void Start()
     {
         InitializePool();
@@ -42,12 +50,15 @@ public class DangerVisuals : MonoBehaviour
 
     void Update()
     {
-        _spawnTimer += Time.deltaTime;
-
-        if (_spawnTimer >= 1f / spawnRate)
+        if (_isPoolActive)
         {
-            _spawnTimer = 0f;
-            LaunchFromPool();
+            _spawnTimer += Time.deltaTime;
+
+            if (_spawnTimer >= 1f / spawnRate)
+            {
+                _spawnTimer = 0f;
+                LaunchFromPool();
+            }
         }
     }
 
@@ -62,6 +73,7 @@ public class DangerVisuals : MonoBehaviour
         {
             GameObject obj = Instantiate(objectPrefab, transform);
             obj.SetActive(false);
+            
             _pool.Enqueue(obj);
         }
     }
@@ -138,4 +150,39 @@ public class DangerVisuals : MonoBehaviour
         Gizmos.DrawLine(transform.position,
                         transform.position + Vector3.up * launchForce * 0.5f);
     }
+
+    public void AssignFLCamData(Transform originalTargetTransform, CinemachineCamera FLCamera)
+    {
+        _characterFLCam = FLCamera;
+        _originalTargetTransformForCharacterFLCam = originalTargetTransform;
+    }
+
+    public void ShowProblem()
+    {
+        StartCoroutine(showPoleTopForProblemOrSolutionCoroutine(true));
+    }
+
+    IEnumerator showPoleTopForProblemOrSolutionCoroutine(bool showProblem)
+    {
+        _isPoolActive = showProblem;
+        problemSolvedVFX.SetActive(!showProblem);
+        if (_characterFLCam != null && _originalTargetTransformForCharacterFLCam != null)
+        {
+            _characterFLCam.Target.TrackingTarget = transform;
+            yield return new WaitForSeconds(showProblemForSeconds);
+            _characterFLCam.Target.TrackingTarget = _originalTargetTransformForCharacterFLCam;
+
+
+        }
+      
+        yield return null;
+    }
+    
+    public void StopShowingTheProblem()
+    {
+        StartCoroutine(showPoleTopForProblemOrSolutionCoroutine(false));
+    }
+
+
+
 }

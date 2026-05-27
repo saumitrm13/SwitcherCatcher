@@ -341,5 +341,9 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
 
     }
 
-
+    public void PassFLCamDataToVisuals(DangerVisuals visuals)
+    {
+        visuals.AssignFLCamData(transform, FLCam);
+    }
+    
 }

@@ -28,7 +28,7 @@ Material:
   - _NORMALMAP
   m_InvalidKeywords: []
   m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
+  m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap:
@@ -59,6 +59,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _DissolveTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _EmissionMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -68,6 +72,10 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -102,6 +110,7 @@ Material:
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
+    - _BlendOp: 0
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
@@ -109,20 +118,42 @@ Material:
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
+    - _DissolveAmount: 0.229
+    - _DissolveEdge: 0.05
     - _DstBlend: 0
     - _DstBlendAlpha: 0
+    - _EmissiveIntensity: 0
     - _EnvironmentReflections: 1
+    - _FlickerAmount: 0.244
+    - _FlickerSpeed: 8.1
+    - _GlitchBlockSize: 0.201
+    - _GlitchIntensity: 0.191
+    - _GlitchSpeed: 7.7
     - _GlossMapScale: 1
     - _Glossiness: 0.4472136
     - _GlossyReflections: 1
+    - _HologramIntensity: 0.022
     - _Metallic: 0
     - _Mode: 0
+    - _NormalStrength: 1.31
     - _OcclusionStrength: 1
+    - _Opacity: 1
     - _Parallax: 0.02
+    - _PulseAmount: 0.546
+    - _PulseSpeed: 1
     - _QueueOffset: 0
     - _ReceiveShadows: 1
+    - _RimIntensity: 2.31
+    - _RimPower: 1.84
+    - _SampleGI: 0
+    - _ScanlineCount: 179
+    - _ScanlineSpeed: 2.77
+    - _ScanlineThickness: 0.01
     - _Smoothness: 0.4472136
     - _SmoothnessTextureChannel: 0
+    - _SparkleIntensity: 0.471
+    - _SparkleScale: 30
+    - _SparkleSpeed: 3
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
@@ -133,7 +164,12 @@ Material:
     m_Colors:
     - _BaseColor: {r: 0.8, g: 0.8, b: 0.8, a: 1}
     - _Color: {r: 0.8, g: 0.8, b: 0.8, a: 1}
+    - _DissolveColor: {r: 0.19999996, g: 0.6, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _EmissiveColor: {r: 1, g: 0.44275072, b: 0, a: 1}
+    - _HologramColor: {r: 0.19999996, g: 0.8, b: 1, a: 1}
+    - _RimColor: {r: 0.5, g: 0.19999996, b: 1, a: 1}
+    - _SparkleColor: {r: 1, g: 0.9, b: 0.39999998, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

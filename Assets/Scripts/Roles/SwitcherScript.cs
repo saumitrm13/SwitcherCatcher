@@ -32,6 +32,7 @@ public class SwitcherScript : NetworkBehaviour
     [Header("Particle Systems")]
     [SerializeField] ParticleSystem successVFX;
     [SerializeField] ParticleSystem wrongPoleEntryAttackVFX;
+    [SerializeField] ParticleSystem resourceGainVFX;
     [Header("Task Timer")]
     [SerializeField] float taskTimeLimit = 30f;   // seconds � tweak in Inspector
     [Header("Resources Visuals")]
@@ -304,7 +305,7 @@ public class SwitcherScript : NetworkBehaviour
             {
                 message = $"Perfect ! you found the right pole";
             }
-            
+            PlayResourceGainVFXClientRpc(clientRpcParams);
             hasNecessaryResource = true;
             SetResourceVisualsClientRpc(true, clientRpcParams);
             targetPoleType.Value = PoleType.None;
@@ -319,10 +320,10 @@ public class SwitcherScript : NetworkBehaviour
             {
                 message = $"Good snatch...but this won't solve your problem!!! but getting to {thisSwitcher.getTargetPoleType()} pole might !";
             }
-            
+            PlaySuccessVFXClientRpc(clientRpcParams);
         }
         thisSwitcher.SetCurrentOccupiedPole(currentPole);
-        PlaySuccessVFXClientRpc(clientRpcParams);
+        
         NotifyClientAboutThePoleClientRpc(message, false, clientRpcParams);
     }
 
@@ -680,6 +681,12 @@ public class SwitcherScript : NetworkBehaviour
     {
         if (successVFX != null)
             successVFX.Play();  
+    }
+
+    [ClientRpc]
+    void PlayResourceGainVFXClientRpc(ClientRpcParams clientRpcParams = default)
+    {
+        if(resourceGainVFX != null) resourceGainVFX.Play();
     }
 
     [ClientRpc]

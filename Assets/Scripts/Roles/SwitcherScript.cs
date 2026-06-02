@@ -687,6 +687,7 @@ public class SwitcherScript : NetworkBehaviour
     void PlayResourceGainVFXClientRpc(ClientRpcParams clientRpcParams = default)
     {
         if(resourceGainVFX != null) resourceGainVFX.Play();
+        dangerVisuals.ShakeCam();
     }
 
     [ClientRpc]

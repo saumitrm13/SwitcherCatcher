@@ -187,6 +187,9 @@ public class DangerVisuals : MonoBehaviour
         StartCoroutine(showPoleTopForProblemOrSolutionCoroutine(false));
     }
 
-
+    public void ShakeCam()
+    {
+        _characterFLCam.GetComponent<ShakeController>().TriggerShake(); 
+    }
 
 }

@@ -23,7 +23,11 @@ public class SwitcherRquestHandler : NetworkBehaviour
     private static List<PoleType> DestroyedPoles = new List<PoleType>();
     PoleType thisPoleType = PoleType.None;
     GameObject switcherCanvas;
+
+    [HideInInspector]
     public SwitcherUIScript switcherUIFunctions;
+    [HideInInspector]
+    public UIEffects switcherCanvasUIEffects;
     PoleType alliedWithPoleType = PoleType.None;
 
 
@@ -93,6 +97,7 @@ public class SwitcherRquestHandler : NetworkBehaviour
             switcherCanvas.SetActive(true);
             switcherUIFunctions = switcherCanvas.GetComponent<SwitcherUIScript>();
             switcherUIFunctions.requestHandler = this;
+            switcherCanvasUIEffects = switcherCanvas.GetComponent<UIEffects>();
             switcherCanvas.GetComponent<RectTransform>().localScale = Vector3.one;
             if(DestroyedPoles.Count == 0)
             {
@@ -652,4 +657,9 @@ public class SwitcherRquestHandler : NetworkBehaviour
         
         DestroySendRequestBtnForAPoleTypeClientRpc(thisPoleType);
     }
+    public void PlayCatcherDeathSequence()
+    {
+        switcherCanvasUIEffects.PlaySequence();
+    }
 }
+

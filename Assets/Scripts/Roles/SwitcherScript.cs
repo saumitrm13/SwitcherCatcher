@@ -33,6 +33,8 @@ public class SwitcherScript : NetworkBehaviour
     [SerializeField] ParticleSystem successVFX;
     [SerializeField] ParticleSystem wrongPoleEntryAttackVFX;
     [SerializeField] ParticleSystem resourceGainVFX;
+
+    
     [Header("Task Timer")]
     [SerializeField] float taskTimeLimit = 30f;   // seconds � tweak in Inspector
     [Header("Resources Visuals")]
@@ -44,6 +46,7 @@ public class SwitcherScript : NetworkBehaviour
 
     public NetworkVariable<PoleType> targetPoleType = new NetworkVariable<PoleType>(
         PoleType.None, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
     public override void OnNetworkSpawn()
     {   
         Debug.Log("Switcher assigned");
@@ -720,7 +723,9 @@ public class SwitcherScript : NetworkBehaviour
         // NotifyClientAboutThePoleClientRpc($"You got the resources! Now get back to your pole : {thisSwitcher.getOwnedPoleType().ToString()}", false, clientRpcParams);
         debugText.text = $"Well done! You handled the situation";
         currentColliderTransform.Find("ResourceParent").gameObject.SetActive(true);
+        GetComponent<SwitcherRquestHandler>().PlayCatcherDeathSequence();
         dangerVisuals.StopShowingTheProblem();
+
     }
 
     [ClientRpc]

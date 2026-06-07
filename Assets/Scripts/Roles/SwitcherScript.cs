@@ -33,6 +33,7 @@ public class SwitcherScript : NetworkBehaviour
     [SerializeField] ParticleSystem successVFX;
     [SerializeField] ParticleSystem wrongPoleEntryAttackVFX;
     [SerializeField] ParticleSystem resourceGainVFX;
+    [SerializeField] GameObject throwableMagic;
 
     
     [Header("Task Timer")]
@@ -723,7 +724,7 @@ public class SwitcherScript : NetworkBehaviour
         // NotifyClientAboutThePoleClientRpc($"You got the resources! Now get back to your pole : {thisSwitcher.getOwnedPoleType().ToString()}", false, clientRpcParams);
         debugText.text = $"Well done! You handled the situation";
         currentColliderTransform.Find("ResourceParent").gameObject.SetActive(true);
-        GetComponent<SwitcherRquestHandler>().PlayCatcherDeathSequence();
+        //GetComponent<SwitcherRquestHandler>().PlayCatcherDeathSequence();
         dangerVisuals.StopShowingTheProblem();
 
     }
@@ -732,7 +733,9 @@ public class SwitcherScript : NetworkBehaviour
     void ProcessAfterOwningAPoleClientRpc(ClientRpcParams clientRpcParams = default) {
         GameObject problemVisuals = currentColliderTransform.Find("ProblemVisual").gameObject;
         dangerVisuals = problemVisuals.GetComponent<DangerVisuals>();
-        GetComponent<AnimationAndMovementControllerNetwork>().PassFLCamDataToVisuals(dangerVisuals);
+
+        GetComponent<AnimationAndMovementControllerNetwork>().PassFLCamDataToVisuals(dangerVisuals,throwableMagic);
+
     }
 
     [ClientRpc]

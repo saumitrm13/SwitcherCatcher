@@ -341,9 +341,9 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
 
     }
 
-    public void PassFLCamDataToVisuals(DangerVisuals visuals)
+    public void PassFLCamDataToVisuals(DangerVisuals visuals,GameObject throwableMagic)
     {
-        visuals.AssignFLCamData(transform, FLCam);
+        visuals.AssignSwitcherObjectsWithOwnedPole(transform, FLCam, throwableMagic,transform);
     }
     
 }

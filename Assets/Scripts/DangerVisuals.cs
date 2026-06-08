@@ -32,21 +32,26 @@ public class DangerVisuals : MonoBehaviour
     public float showProblemForSeconds = 4f;
     public GameObject problemSolvedVFX;
     public Transform anchorForThrowableMagic;
+    public Vector3 localPositionForExplosionVFX = new Vector3(0, 0, 0.0058f);
+
+    static ParticleSystem explosionVFX;
     CinemachineCamera _characterFLCam;
     Transform _originalTargetTransformForCharacterFLCam;
     GameObject _throwableMagic;
     Vector3 _initialLocalPositionForThrowableMagic;
     Vector3 _initial_LP_For_TM_Anchor;
     Transform _ownerTransform;
+    ShakeController _shakeController;
     // ── Internal ────────────────────────────────────────────────────────────
     private Queue<GameObject> _pool;
     private float _spawnTimer;
-    bool _isPoolActive = false; 
+    bool _isPoolActive = false;
 
     void Start()
     {
         InitializePool();
         _initial_LP_For_TM_Anchor = anchorForThrowableMagic.transform.localPosition;
+        explosionVFX = GameObject.Find("PoleTopExplosion").GetComponent<ParticleSystem>(); 
     }
 
     void Update()
@@ -74,7 +79,6 @@ public class DangerVisuals : MonoBehaviour
         {
             GameObject obj = Instantiate(objectPrefab, transform);
             obj.SetActive(false);
-            
             _pool.Enqueue(obj);
         }
     }
@@ -152,7 +156,7 @@ public class DangerVisuals : MonoBehaviour
                         transform.position + Vector3.up * launchForce * 0.5f);
     }
 
-    public void AssignSwitcherObjectsWithOwnedPole(Transform originalTargetTransform, CinemachineCamera FLCamera, GameObject throwableMagic,Transform ownerTransform)
+    public void AssignSwitcherObjectsWithOwnedPole(Transform originalTargetTransform, CinemachineCamera FLCamera, GameObject throwableMagic, Transform ownerTransform)
     {
         _characterFLCam = FLCamera;
         _originalTargetTransformForCharacterFLCam = originalTargetTransform;
@@ -160,6 +164,9 @@ public class DangerVisuals : MonoBehaviour
         _throwableMagic = throwableMagic;
         _ownerTransform = ownerTransform;
         _initialLocalPositionForThrowableMagic = throwableMagic.transform.localPosition;
+        _shakeController = _characterFLCam.GetComponent<ShakeController>();
+        explosionVFX.transform.SetParent(transform);
+        explosionVFX.transform.localPosition = localPositionForExplosionVFX;
 
     }
 
@@ -172,7 +179,6 @@ public class DangerVisuals : MonoBehaviour
     {
         _isPoolActive = showProblem;
         problemSolvedVFX.SetActive(!showProblem);
-        
         if (!showProblem)
         {
             _throwableMagic.SetActive(true);
@@ -181,8 +187,10 @@ public class DangerVisuals : MonoBehaviour
             anchorForThrowableMagic.DOMove(miniCatcherOnTopOfTheTower.transform.position, 1.5f).OnComplete(() =>
             {
                 _throwableMagic.transform.DOMove(miniCatcherOnTopOfTheTower.transform.position, 0.5f).OnComplete(() =>
-                {   
+                {
                     _throwableMagic.SetActive(false);
+                    explosionVFX.Play();
+                    ShakeCam();
                     miniCatcherOnTopOfTheTower.SetActive(showProblem);
                 }
                 );
@@ -195,7 +203,7 @@ public class DangerVisuals : MonoBehaviour
 
         }
         if (_characterFLCam != null && _originalTargetTransformForCharacterFLCam != null && showProblem)
-        {   
+        {
             miniCatcherOnTopOfTheTower.SetActive(showProblem);
             _characterFLCam.Target.TrackingTarget = transform;
             yield return new WaitForSeconds(showProblemForSeconds);
@@ -204,10 +212,9 @@ public class DangerVisuals : MonoBehaviour
 
         }
 
-        
+
         yield return null;
     }
-    
     public void StopShowingTheProblem()
     {
         StartCoroutine(showPoleTopForProblemOrSolutionCoroutine(false));
@@ -215,7 +222,7 @@ public class DangerVisuals : MonoBehaviour
 
     public void ShakeCam()
     {
-        _characterFLCam.GetComponent<ShakeController>().TriggerShake(); 
+        _shakeController.TriggerShake();
     }
 
 }

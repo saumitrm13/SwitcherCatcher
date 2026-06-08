@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Unity.Cinemachine;
 
 using UnityEngine;
+using DG.Tweening;
 
 /// <summary>
 /// Attach this script to an empty GameObject to create a fountain of pooled objects.
@@ -14,33 +15,29 @@ public class DangerVisuals : MonoBehaviour
     [Header("Pool Settings")]
     [Tooltip("The prefab to pool and shoot from the fountain.")]
     public GameObject objectPrefab;
-
     [Tooltip("Total number of objects in the pool.")]
     public int poolSize = 30;
-
     [Header("Fountain Settings")]
     [Tooltip("How many objects are launched per second.")]
     public float spawnRate = 5f;
-
     [Tooltip("Base upward force of the fountain.")]
     public float launchForce = 8f;
-
     [Tooltip("Horizontal spread radius of the fountain.")]
     public float spreadRadius = 1.5f;
-
     [Tooltip("How long each object stays active before returning to pool (seconds).")]
     public float lifetime = 3f;
-
     [Tooltip("Apply gravity scale to pooled Rigidbodies.")]
     public float gravityScale = 1f;
-
     public GameObject miniCatcherOnTopOfTheTower;
-
     public float showProblemForSeconds = 4f;
-
     public GameObject problemSolvedVFX;
+    public Transform anchorForThrowableMagic;
     CinemachineCamera _characterFLCam;
     Transform _originalTargetTransformForCharacterFLCam;
+    GameObject _throwableMagic;
+    Vector3 _initialLocalPositionForThrowableMagic;
+    Vector3 _initial_LP_For_TM_Anchor;
+    Transform _ownerTransform;
     // ── Internal ────────────────────────────────────────────────────────────
     private Queue<GameObject> _pool;
     private float _spawnTimer;
@@ -49,6 +46,7 @@ public class DangerVisuals : MonoBehaviour
     void Start()
     {
         InitializePool();
+        _initial_LP_For_TM_Anchor = anchorForThrowableMagic.transform.localPosition;
     }
 
     void Update()
@@ -154,10 +152,15 @@ public class DangerVisuals : MonoBehaviour
                         transform.position + Vector3.up * launchForce * 0.5f);
     }
 
-    public void AssignFLCamData(Transform originalTargetTransform, CinemachineCamera FLCamera)
+    public void AssignSwitcherObjectsWithOwnedPole(Transform originalTargetTransform, CinemachineCamera FLCamera, GameObject throwableMagic,Transform ownerTransform)
     {
         _characterFLCam = FLCamera;
         _originalTargetTransformForCharacterFLCam = originalTargetTransform;
+
+        _throwableMagic = throwableMagic;
+        _ownerTransform = ownerTransform;
+        _initialLocalPositionForThrowableMagic = throwableMagic.transform.localPosition;
+
     }
 
     public void ShowProblem()
@@ -169,16 +172,39 @@ public class DangerVisuals : MonoBehaviour
     {
         _isPoolActive = showProblem;
         problemSolvedVFX.SetActive(!showProblem);
-        miniCatcherOnTopOfTheTower.SetActive(showProblem);
-        if (_characterFLCam != null && _originalTargetTransformForCharacterFLCam != null)
+        
+        if (!showProblem)
         {
+            _throwableMagic.SetActive(true);
+            _throwableMagic.transform.SetParent(anchorForThrowableMagic);
+            _characterFLCam.Target.TrackingTarget = _throwableMagic.transform;
+            anchorForThrowableMagic.DOMove(miniCatcherOnTopOfTheTower.transform.position, 1.5f).OnComplete(() =>
+            {
+                _throwableMagic.transform.DOMove(miniCatcherOnTopOfTheTower.transform.position, 0.5f).OnComplete(() =>
+                {   
+                    _throwableMagic.SetActive(false);
+                    miniCatcherOnTopOfTheTower.SetActive(showProblem);
+                }
+                );
+            });
+
+            yield return new WaitForSeconds(showProblemForSeconds - 0.6f);
+            _throwableMagic.transform.SetParent(_ownerTransform);
+            _throwableMagic.transform.localPosition = _initialLocalPositionForThrowableMagic;
+            anchorForThrowableMagic.localPosition = _initial_LP_For_TM_Anchor;
+
+        }
+        if (_characterFLCam != null && _originalTargetTransformForCharacterFLCam != null && showProblem)
+        {   
+            miniCatcherOnTopOfTheTower.SetActive(showProblem);
             _characterFLCam.Target.TrackingTarget = transform;
             yield return new WaitForSeconds(showProblemForSeconds);
             _characterFLCam.Target.TrackingTarget = _originalTargetTransformForCharacterFLCam;
 
 
         }
-      
+
+        
         yield return null;
     }
     

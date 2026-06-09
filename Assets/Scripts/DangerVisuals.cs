@@ -5,6 +5,7 @@ using Unity.Cinemachine;
 
 using UnityEngine;
 using DG.Tweening;
+using System;
 
 /// <summary>
 /// Attach this script to an empty GameObject to create a fountain of pooled objects.
@@ -112,14 +113,14 @@ public class DangerVisuals : MonoBehaviour
 
         // Reset position to fountain origin
         obj.transform.position = transform.position;
-        obj.transform.rotation = Random.rotation;
+        obj.transform.rotation = UnityEngine.Random.rotation;
         obj.transform.SetParent(null); // Detach so physics work freely
 
         // Apply random spread + upward launch velocity
         Vector3 spread = new Vector3(
-            Random.Range(-spreadRadius, spreadRadius),
+            UnityEngine.Random.Range(-spreadRadius, spreadRadius),
             0f,
-            Random.Range(-spreadRadius, spreadRadius)
+            UnityEngine.Random.Range(-spreadRadius, spreadRadius)
         );
         Vector3 velocity = (Vector3.up * launchForce + spread).normalized
                            * launchForce;
@@ -185,7 +186,8 @@ public class DangerVisuals : MonoBehaviour
             _throwableMagic.transform.SetParent(anchorForThrowableMagic);
             _characterFLCam.Target.TrackingTarget = _throwableMagic.transform;
             anchorForThrowableMagic.DOMove(miniCatcherOnTopOfTheTower.transform.position, 1.5f).OnComplete(() =>
-            {
+            {   
+                ShakeCam(true);
                 _throwableMagic.transform.DOMove(miniCatcherOnTopOfTheTower.transform.position, 0.5f).OnComplete(() =>
                 {
                     _throwableMagic.SetActive(false);
@@ -220,9 +222,16 @@ public class DangerVisuals : MonoBehaviour
         StartCoroutine(showPoleTopForProblemOrSolutionCoroutine(false));
     }
 
-    public void ShakeCam()
+    public void ShakeCam(bool lightShake = false)
     {
+        if (lightShake) {
+            _shakeController.TriggerSmallShake();
+            return;
+        }
         _shakeController.TriggerShake();
     }
+
+    
+
 
 }

@@ -2377,17 +2377,21 @@ PrefabInstance:
       propertyPath: m_Name
       value: CatcherHandMagic
       objectReference: {fileID: 0}
+    - target: {fileID: 393122764960235967, guid: 8d705334978b4f84fad032fd00feb915, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3132198275190262907, guid: 8d705334978b4f84fad032fd00feb915, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 3132198275190262907, guid: 8d705334978b4f84fad032fd00feb915, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 3132198275190262907, guid: 8d705334978b4f84fad032fd00feb915, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 3132198275190262907, guid: 8d705334978b4f84fad032fd00feb915, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2990,6 +2994,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   catcherCanvas: {fileID: 6404754307472145762}
+  magicInCatcherHand: {fileID: 0}
 --- !u!65 &2609346604837758141
 BoxCollider:
   m_ObjectHideFlags: 0

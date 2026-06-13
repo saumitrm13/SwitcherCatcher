@@ -1088,6 +1088,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6404754307472145762, guid: a2cdd370cf0129b45845410fa1ce7af7, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7402875445068953174, guid: a2cdd370cf0129b45845410fa1ce7af7, type: 3}
       propertyPath: catcherScript
       value: 
@@ -1113,6 +1117,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a2cdd370cf0129b45845410fa1ce7af7, type: 3}
+--- !u!1 &317505152827923748 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1715345180001189794, guid: a2cdd370cf0129b45845410fa1ce7af7, type: 3}
+  m_PrefabInstance: {fileID: 1415854434290508422}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &5423567606001672164 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6404754307472145762, guid: a2cdd370cf0129b45845410fa1ce7af7, type: 3}
@@ -2323,6 +2332,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   catcherCanvas: {fileID: 5423567606001672164}
+  magicInCatcherHand: {fileID: 317505152827923748}
 --- !u!114 &3110308216877367268
 MonoBehaviour:
   m_ObjectHideFlags: 0

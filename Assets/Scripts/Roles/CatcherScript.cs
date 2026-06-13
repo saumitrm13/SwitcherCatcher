@@ -9,6 +9,9 @@ public class CatcherScript : NetworkBehaviour
    
     public static NetworkVariable<PoleType> cursedPoleType = new NetworkVariable<PoleType>(PoleType.None);
     [SerializeField] GameObject catcherCanvas;
+    [SerializeField] GameObject magicInCatcherHand;
+    ClientRpcParams thisClientRpcParams;
+    Animator animator;
     private void Awake()
     {
         catcher = new Catcher(); 
@@ -19,6 +22,19 @@ public class CatcherScript : NetworkBehaviour
         if (!IsOwner)
         {
             catcherCanvas.SetActive(false);
+           
+            
+        }
+        thisClientRpcParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = new ulong[] { OwnerClientId }
+            }
+        };
+        if (IsOwner)
+        {
+            animator = GetComponent<Animator>();
         }
     }
 
@@ -93,6 +109,7 @@ public class CatcherScript : NetworkBehaviour
             }
         };
         PlayDeathAnimationClientRpc(clientRpcParams);
+        CatcherRoutineAfterCatchingSwitcherClientRpc(thisClientRpcParams);
     }
 
     [ClientRpc]
@@ -104,6 +121,7 @@ public class CatcherScript : NetworkBehaviour
             localPlayerObject.GetComponent<AnimationAndMovementControllerNetwork>().enabled = false;
             localPlayerObject.GetComponent<Animator>().SetTrigger("Die");
         }
+        magicInCatcherHand.SetActive(true);
     }
 
     public void ChangeCursedPole(PoleType cursedType) {
@@ -114,5 +132,13 @@ public class CatcherScript : NetworkBehaviour
     public void SetCursedPoleTypeServerRpc(PoleType newType)
     {
         cursedPoleType.Value = newType;
+    }
+
+    [ClientRpc]
+    void CatcherRoutineAfterCatchingSwitcherClientRpc(ClientRpcParams clientRpcParams = default)
+    {
+        Debug.Log("Attacking");
+        animator.SetTrigger("Catcher_Attack");
+        magicInCatcherHand.SetActive(true);
     }
 }

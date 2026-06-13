@@ -14,14 +14,7 @@ public class CatcherUIScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!selectedCursedPole)
-        {
-            if (Input.GetKeyDown(KeyCode.B))
-            {
-                OnCurseBtnClick(6);
-                selectedCursedPole = true;
-            }
-        }
+       
     }
 
     //For now we know that Catcher is always on server...but that won't be the case 

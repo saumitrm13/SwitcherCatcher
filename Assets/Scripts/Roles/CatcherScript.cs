@@ -2,6 +2,8 @@ using UnityEngine;
 using Unity.Netcode;
 using System.Linq;
 using System;
+using DG.Tweening;
+using System.Collections;
 
 public class CatcherScript : NetworkBehaviour
 {
@@ -10,11 +12,19 @@ public class CatcherScript : NetworkBehaviour
     public static NetworkVariable<PoleType> cursedPoleType = new NetworkVariable<PoleType>(PoleType.None);
     [SerializeField] GameObject catcherCanvas;
     [SerializeField] GameObject magicInCatcherHand;
+    [SerializeField] ParticleSystem electricHitAfterCatcherMagic;
+    Vector3 electricHitInitialPos = new Vector3();
+    Vector3 magicLocalPosition = new Vector3();
     ClientRpcParams thisClientRpcParams;
     Animator animator;
+    GameObject currentSwitcherInRange;
+
+
     private void Awake()
     {
-        catcher = new Catcher(); 
+        catcher = new Catcher();
+        magicLocalPosition = magicInCatcherHand.transform.localPosition;
+        electricHitInitialPos = electricHitAfterCatcherMagic.transform.localPosition;
     }
 
     public override void OnNetworkSpawn()
@@ -42,22 +52,22 @@ public class CatcherScript : NetworkBehaviour
     {
         if (!isActiveAndEnabled)
             return;
-
+        if (!other.gameObject.CompareTag("Switcher")){return;}
+        currentSwitcherInRange = other.gameObject;
         if (!IsServer) { return; }
         Debug.Log("Player caught");
-        if (other.gameObject.CompareTag("Switcher"))
-        {
-            GameObject caughtPlayer = other.gameObject;
-            bool isCaughtOutOfSafeZone = !caughtPlayer.GetComponent<SwitcherScript>().isInSafeZone.Value;
-            if (isCaughtOutOfSafeZone)
-            {
-                Debug.Log("Caught out of safe zone");
-                var deadPlayer = caughtPlayer.GetComponent<AnimationAndMovementControllerNetwork>();
-                Debug.Log($"Dead player is : {deadPlayer.NetworkObjectId}");
-                Debug.Log($"Catcher is : {NetworkManager.Singleton.LocalClientId}");
-                HandlePlayerDeathServerRpc(deadPlayer.OwnerClientId);
-            }
-        }
+        
+        GameObject caughtPlayer = other.gameObject;
+        bool isCaughtOutOfSafeZone = !caughtPlayer.GetComponent<SwitcherScript>().isInSafeZone.Value;
+        if (isCaughtOutOfSafeZone)
+           {
+              Debug.Log("Caught out of safe zone");
+              var deadPlayer = caughtPlayer.GetComponent<AnimationAndMovementControllerNetwork>();
+              Debug.Log($"Dead player is : {deadPlayer.NetworkObjectId}");
+              Debug.Log($"Catcher is : {NetworkManager.Singleton.LocalClientId}");
+              HandlePlayerDeathServerRpc(deadPlayer.OwnerClientId);
+           }
+        
         //var deadPlayer = other.GetComponent<AnimationAndMovementControllerNetwork>();
         //Debug.Log($"Dead player is : {deadPlayer.NetworkObjectId}");
         //Debug.Log($"Catcher is : {NetworkManager.Singleton.LocalClientId}");
@@ -109,7 +119,7 @@ public class CatcherScript : NetworkBehaviour
             }
         };
         PlayDeathAnimationClientRpc(clientRpcParams);
-        CatcherRoutineAfterCatchingSwitcherClientRpc(thisClientRpcParams);
+        CatcherRoutineAfterCatchingSwitcherClientRpc();
     }
 
     [ClientRpc]
@@ -119,7 +129,7 @@ public class CatcherScript : NetworkBehaviour
         var localPlayerObject = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject();
         if (localPlayerObject != null) {
             localPlayerObject.GetComponent<AnimationAndMovementControllerNetwork>().enabled = false;
-            localPlayerObject.GetComponent<Animator>().SetTrigger("Die");
+            //localPlayerObject.GetComponent<Animator>().SetTrigger("Die");
         }
         magicInCatcherHand.SetActive(true);
     }
@@ -135,10 +145,39 @@ public class CatcherScript : NetworkBehaviour
     }
 
     [ClientRpc]
-    void CatcherRoutineAfterCatchingSwitcherClientRpc(ClientRpcParams clientRpcParams = default)
+    void CatcherRoutineAfterCatchingSwitcherClientRpc()
     {
         Debug.Log("Attacking");
-        animator.SetTrigger("Catcher_Attack");
+        if (IsOwner)
+        {
+            animator.SetTrigger("Catcher_Attack");
+        }
         magicInCatcherHand.SetActive(true);
+        if(currentSwitcherInRange != null)
+        {  
+           Vector3 targetPos = currentSwitcherInRange.transform.position;
+            Vector3 targetPositionForMagic = new Vector3(targetPos.x, targetPos.y + 5, targetPos.z);
+            magicInCatcherHand.transform.DOScale(0.5f, 0.5f).SetEase(Ease.InBounce);
+            magicInCatcherHand.transform.DOMove(targetPositionForMagic, 1f).SetDelay(0.8f)
+                .OnComplete(() =>
+                {
+                    StartCoroutine(electricHitCoroutine());
+                    magicInCatcherHand.SetActive(false);
+                    magicInCatcherHand.transform.localPosition = magicLocalPosition;
+                    magicInCatcherHand.transform.localScale = Vector3.zero;
+                    currentSwitcherInRange.GetComponent<PlayerVisuals>().ActivateSwitcherHits();
+                    
+                });
+
+        }
+    }
+
+    IEnumerator electricHitCoroutine()
+    {
+        electricHitAfterCatcherMagic.transform.SetParent(null);
+        electricHitAfterCatcherMagic.Play();
+        yield return new WaitForSeconds(0.5f);
+        electricHitAfterCatcherMagic.transform.SetParent(magicInCatcherHand.transform);
+        electricHitAfterCatcherMagic.transform.localPosition = electricHitInitialPos;
     }
 }

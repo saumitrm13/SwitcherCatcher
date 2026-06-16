@@ -8,7 +8,10 @@ public class PlayerVisuals : NetworkBehaviour
     [SerializeField] private GameObject catcherBody;
     [SerializeField] private Animator playerPrefabAnimator;
     [SerializeField] private Avatar catcherAvatar;
-    
+    [SerializeField] private Vector3 catcherColliderCentre = new Vector3(0, 0.8f, 0.91f);
+    [SerializeField] private Vector3 catcherColliderSize = new Vector3(1, 1.84f, 1.67f);
+    [SerializeField] private GameObject switcherHitsParticleSystem;
+
     // Server writes, all clients read automatically
     private NetworkVariable<bool> isCatcher = new NetworkVariable<bool>(
         false,
@@ -46,6 +49,12 @@ public class PlayerVisuals : NetworkBehaviour
         GetComponent<SwitcherScript>().enabled = !catcher;
         GetComponent<SwitcherRquestHandler>().enabled = !catcher;
         playerPrefabAnimator.avatar = catcher ? catcherAvatar : playerPrefabAnimator.avatar;
+        if (catcher)
+        {
+            BoxCollider collider = GetComponent<BoxCollider>();
+            collider.center = catcherColliderCentre;
+            collider.size = catcherColliderSize;
+        }
     }
 
     // Called by GameStartManager on the server after picking the catcher
@@ -53,5 +62,11 @@ public class PlayerVisuals : NetworkBehaviour
     {
         if (!IsServer) return;
         isCatcher.Value = true;
+    }
+
+    public void ActivateSwitcherHits()
+    {
+        switcherHitsParticleSystem.SetActive(true);
+        switcherHitsParticleSystem.GetComponent<ParticleSystem>().Play();
     }
 }

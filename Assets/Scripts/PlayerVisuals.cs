@@ -10,7 +10,9 @@ public class PlayerVisuals : NetworkBehaviour
     [SerializeField] private Avatar catcherAvatar;
     [SerializeField] private Vector3 catcherColliderCentre = new Vector3(0, 0.8f, 0.91f);
     [SerializeField] private Vector3 catcherColliderSize = new Vector3(1, 1.84f, 1.67f);
-    [SerializeField] private GameObject switcherHitsParticleSystem;
+    [SerializeField] private GameObject[] switcherHitsParticleSystems;
+
+   
 
     // Server writes, all clients read automatically
     private NetworkVariable<bool> isCatcher = new NetworkVariable<bool>(
@@ -33,7 +35,11 @@ public class PlayerVisuals : NetworkBehaviour
     {
         isCatcher.OnValueChanged -= OnCatcherStateChanged;
     }
-
+    private void Awake()
+    {
+        
+        
+    }
     private void OnCatcherStateChanged(bool oldValue, bool newValue)
     {
         ApplyVisuals(newValue);
@@ -66,7 +72,11 @@ public class PlayerVisuals : NetworkBehaviour
 
     public void ActivateSwitcherHits()
     {
-        switcherHitsParticleSystem.SetActive(true);
-        switcherHitsParticleSystem.GetComponent<ParticleSystem>().Play();
+        foreach(GameObject system in switcherHitsParticleSystems)
+        {
+            system.SetActive(true);
+            
+        }
+       
     }
 }

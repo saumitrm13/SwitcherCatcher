@@ -698,7 +698,8 @@ public class SwitcherScript : NetworkBehaviour
     void InvalidPoleEntryRoutineClientRpc(ClientRpcParams clientRpcParams = default) {
         GetComponent<AnimationAndMovementControllerNetwork>().TakeAFall();
         if (wrongPoleEntryAttackVFX != null)
-        {
+        {   
+            
             wrongPoleEntryAttackVFX.Play();
         }
         

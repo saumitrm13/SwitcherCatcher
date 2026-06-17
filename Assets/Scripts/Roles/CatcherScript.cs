@@ -12,8 +12,9 @@ public class CatcherScript : NetworkBehaviour
     public static NetworkVariable<PoleType> cursedPoleType = new NetworkVariable<PoleType>(PoleType.None);
     [SerializeField] GameObject catcherCanvas;
     [SerializeField] GameObject magicInCatcherHand;
-    [SerializeField] ParticleSystem electricHitAfterCatcherMagic;
-    Vector3 electricHitInitialPos = new Vector3();
+   
+    [SerializeField] AnimationAndMovementControllerNetwork movementControllerNetwork;
+    
     Vector3 magicLocalPosition = new Vector3();
     ClientRpcParams thisClientRpcParams;
     Animator animator;
@@ -24,7 +25,7 @@ public class CatcherScript : NetworkBehaviour
     {
         catcher = new Catcher();
         magicLocalPosition = magicInCatcherHand.transform.localPosition;
-        electricHitInitialPos = electricHitAfterCatcherMagic.transform.localPosition;
+       
     }
 
     public override void OnNetworkSpawn()
@@ -130,10 +131,15 @@ public class CatcherScript : NetworkBehaviour
         if (localPlayerObject != null) {
             localPlayerObject.GetComponent<AnimationAndMovementControllerNetwork>().enabled = false;
             //localPlayerObject.GetComponent<Animator>().SetTrigger("Die");
+            StartCoroutine(waitAndPlayDeathAnimation(localPlayerObject));
         }
         magicInCatcherHand.SetActive(true);
     }
-
+    IEnumerator waitAndPlayDeathAnimation(NetworkObject localPlayerObject)
+    {
+        yield return new WaitForSeconds(1.5f);
+        localPlayerObject.GetComponent<Animator>().SetTrigger("Die");
+    }
     public void ChangeCursedPole(PoleType cursedType) {
      
         SetCursedPoleTypeServerRpc(cursedType);
@@ -148,9 +154,11 @@ public class CatcherScript : NetworkBehaviour
     void CatcherRoutineAfterCatchingSwitcherClientRpc()
     {
         Debug.Log("Attacking");
+        
         if (IsOwner)
         {
             animator.SetTrigger("Catcher_Attack");
+            movementControllerNetwork.enabled = false;
         }
         magicInCatcherHand.SetActive(true);
         if(currentSwitcherInRange != null)
@@ -161,8 +169,13 @@ public class CatcherScript : NetworkBehaviour
             magicInCatcherHand.transform.DOMove(targetPositionForMagic, 1f).SetDelay(0.8f)
                 .OnComplete(() =>
                 {
-                    StartCoroutine(electricHitCoroutine());
+                    if (IsOwner)
+                    {
+                        movementControllerNetwork.enabled = true;
+                    }
+                    
                     magicInCatcherHand.SetActive(false);
+
                     magicInCatcherHand.transform.localPosition = magicLocalPosition;
                     magicInCatcherHand.transform.localScale = Vector3.zero;
                     currentSwitcherInRange.GetComponent<PlayerVisuals>().ActivateSwitcherHits();
@@ -170,14 +183,15 @@ public class CatcherScript : NetworkBehaviour
                 });
 
         }
+        
     }
 
-    IEnumerator electricHitCoroutine()
+    IEnumerator waitToEnableCatcherMovement()
     {
-        electricHitAfterCatcherMagic.transform.SetParent(null);
-        electricHitAfterCatcherMagic.Play();
         yield return new WaitForSeconds(0.5f);
-        electricHitAfterCatcherMagic.transform.SetParent(magicInCatcherHand.transform);
-        electricHitAfterCatcherMagic.transform.localPosition = electricHitInitialPos;
+        if (IsOwner)
+        {
+            movementControllerNetwork.enabled = true;
+        }
     }
 }

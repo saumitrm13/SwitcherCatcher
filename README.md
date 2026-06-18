@@ -8,20 +8,20 @@ Switchers can also form alliances with other Switchers, snatch unoccupied poles,
 
 Key Features
 
-Multiplayer via Unity Netcode for GameObjects — authoritative server model with ServerRpcs and ClientRpcs keeping all game state in sync across clients
-Unity Lobby & Relay — players can create public or private lobbies, browse and join open sessions, and connect peer-to-peer through Unity's Relay service without exposing IPs
-Role System — a single player object supports both Catcher and Switcher roles, switched at runtime via PlayerVisuals and NetworkVariable
-Alliance & Request System — Switchers can send, accept, and break partnership requests with other Switchers through an in-game UI
-Pole Stealing — a contested steal mechanic lets Switchers attempt to take over rivals' poles
-Task Timer — each Switcher assignment has a countdown; failure destroys the pole
-NavMesh Pathfinding — arrow guides rendered along a NavMesh path pointing toward the Switcher's target pole, updated at a configurable interval with object pooling for performance
-Cinemachine — per-player follow cameras using Cinemachine; the camera briefly pans to the problem pole when a new task is assigned
-Score Tracking — a live scoreboard backed by a replicated NetworkList<PlayerScore> visible to all clients
-VFX & Animations — particle effects for valid and invalid pole entries, pole explosions via rigidbody physics, and character fall animations
+Multiplayer via Unity Netcode for GameObjects — authoritative server model with ServerRpcs and ClientRpcs keeping all game state in sync across clients.
+Unity Lobby & Relay — players can create public or private lobbies, browse and join open sessions, and connect peer-to-peer through Unity's Relay service without exposing IPs.
+Role System — a single player object supports both Catcher and Switcher roles, switched at runtime via PlayerVisuals and NetworkVariable.
+Alliance & Request System — Switchers can send, accept, and break partnership requests with other Switchers through an in-game UI.
+Pole Stealing — a contested steal mechanic lets Switchers attempt to take over rivals' poles.
+Task Timer — each Switcher assignment has a countdown; failure destroys the pole.
+NavMesh Pathfinding — arrow guides rendered along a NavMesh path pointing toward the Switcher's target pole, updated at a configurable interval with object pooling for performance.
+Cinemachine — per-player follow cameras using Cinemachine; the camera briefly pans to the problem pole when a new task is assigned.
+Score Tracking — a live scoreboard backed by a replicated NetworkList<PlayerScore> visible to all clients.
+VFX & Animations — particle effects for valid and invalid pole entries, pole explosions via rigidbody physics, and character fall animations.
 
 
 Tech Stack
-AreaTechnologyEngineUnityNetworkingUnity Netcode for GameObjectsMatchmakingUnity LobbyTransportUnity RelayCameraCinemachinePathfindingUnity NavMeshAuthUnity Authentication (anonymous)
+AreaTechnologyEngineUnityNetworkingUnity Netcode for GameObjectsMatchmakingUnity LobbyTransportUnity RelayCameraCinemachinePathfindingUnity NavMeshAuthUnity Authentication (anonymous).
 
 Project Structure
 Assets/Scripts/

@@ -13,12 +13,14 @@ public class GameStartManager : NetworkBehaviour
     [SerializeField] private GameObject boundariesBeforeGameStart;
     [SerializeField] private RectTransform gameStartCanvas;
     [SerializeField] private RectTransform lobbyCanvas;
+    [SerializeField] private GameObject CatcherPowerSource;
     // Populated externally when players connect (Auth ID → Netcode Client ID)
     // e.g. fill this from your player spawn manager on client connect
     public static Dictionary<string, ulong> AuthToClientId = new();
 
     public void StartGame()
     {
+        CatcherPowerSource.SetActive(true);
         if (!NetworkManager.Singleton.IsServer) return;
 
         var connectedClientIds = new List<ulong>(NetworkManager.Singleton.ConnectedClientsIds);
@@ -52,8 +54,10 @@ public class GameStartManager : NetworkBehaviour
     void StartGameForEveryClientClientRpc()
     {
         GameSessionData.Instance.HasGameStartedYet = true;
+        CatcherPowerSource.SetActive(true);
         boundariesBeforeGameStart.SetActive(false);
         gameStartCanvas.localScale = (Vector3.one);
         lobbyCanvas.localScale = (Vector3.zero);
     }
 }
+

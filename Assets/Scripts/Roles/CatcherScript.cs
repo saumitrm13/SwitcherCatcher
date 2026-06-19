@@ -4,34 +4,47 @@ using System.Linq;
 using System;
 using DG.Tweening;
 using System.Collections;
+using NUnit.Framework;
+using System.Collections.Generic;
 
 public class CatcherScript : NetworkBehaviour
 {
     Catcher catcher;
-   
+
     public static NetworkVariable<PoleType> cursedPoleType = new NetworkVariable<PoleType>(PoleType.None);
+    public static NetworkVariable<int> currentCatcherPowerValue = new NetworkVariable<int>(5, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     [SerializeField] GameObject catcherCanvas;
     [SerializeField] GameObject magicInCatcherHand;
-   
+
     [SerializeField] AnimationAndMovementControllerNetwork movementControllerNetwork;
     [SerializeField] float powerDuration = 10f;
     [SerializeField] float powerRechargeDuration = 5f;
+
+    [SerializeField] GameObject powerSourcePrefab;
+    [SerializeField] float scaleDownTime;
+    [SerializeField] float scaleUpTime;
+    [SerializeField] Vector3 scaleDownValue;
+    List<Transform> powerPrefabSpawnTransforms = new List<Transform>();
+
 
     Vector3 magicLocalPosition = new Vector3();
     ClientRpcParams thisClientRpcParams;
     Animator animator;
     GameObject currentSwitcherInRange;
-    NetworkVariable<bool> hasPowers = new NetworkVariable<bool>(true, NetworkVariableReadPermission.Everyone,NetworkVariableWritePermission.Server);
+    NetworkVariable<bool> hasPowers = new NetworkVariable<bool>(true, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     Coroutine powerDrainCoroutine;
     Coroutine powerRechargeCoroutine;
-    
+    List<GameObject> spawnedPrefabs = new List<GameObject>();
+
+
+    private bool transitionig = false;
 
     private void Awake()
     {
         catcher = new Catcher();
         magicLocalPosition = magicInCatcherHand.transform.localPosition;
-        
-       
+
+
     }
 
     private void Start()
@@ -41,6 +54,7 @@ public class CatcherScript : NetworkBehaviour
             hasPowers.Value = true;
             Debug.Log("Catcher has powers: " + hasPowers.Value);
             StartPowerDrainTimer();
+            StartCoroutine(GetPowerSourceDropPointsCoroutine());
         }
     }
 
@@ -49,8 +63,8 @@ public class CatcherScript : NetworkBehaviour
         if (!IsOwner)
         {
             catcherCanvas.SetActive(false);
-           
-            
+
+
         }
         thisClientRpcParams = new ClientRpcParams
         {
@@ -69,30 +83,35 @@ public class CatcherScript : NetworkBehaviour
     {
         if (!isActiveAndEnabled)
             return;
-        if(other.gameObject.CompareTag("PowerSource") && IsServer)
+        if (other.gameObject.CompareTag("PowerSource") && currentCatcherPowerValue.Value < 5)
         {   
-            if(powerRechargeCoroutine != null) { StopCoroutine(powerRechargeCoroutine); powerRechargeCoroutine = null; }
-            HandlePowerSourceEnter();
+            Debug.Log("Collided with power source");
+            StartCoroutine(DropPowerPrefabCoroutine());
+            if (IsServer)
+            {
+                if (powerRechargeCoroutine != null) { StopCoroutine(powerRechargeCoroutine); powerRechargeCoroutine = null; }
+                HandlePowerSourceEnter();
+            }
             return;
         }
 
-        if (!other.gameObject.CompareTag("Switcher")){return;}
+        if (!other.gameObject.CompareTag("Switcher")) { return; }
         currentSwitcherInRange = other.gameObject;
-        if (!hasPowers.Value) {return;}
+        if (!hasPowers.Value) { return; }
         if (!IsServer) { return; }
         Debug.Log("Player caught");
-        
+
         GameObject caughtPlayer = other.gameObject;
         bool isCaughtOutOfSafeZone = !caughtPlayer.GetComponent<SwitcherScript>().isInSafeZone.Value;
         if (isCaughtOutOfSafeZone)
-           {
-              Debug.Log("Caught out of safe zone");
-              var deadPlayer = caughtPlayer.GetComponent<AnimationAndMovementControllerNetwork>();
-              Debug.Log($"Dead player is : {deadPlayer.NetworkObjectId}");
-              Debug.Log($"Catcher is : {NetworkManager.Singleton.LocalClientId}");
-              HandlePlayerDeathServerRpc(deadPlayer.OwnerClientId);
-           }
-        
+        {
+            Debug.Log("Caught out of safe zone");
+            var deadPlayer = caughtPlayer.GetComponent<AnimationAndMovementControllerNetwork>();
+            Debug.Log($"Dead player is : {deadPlayer.NetworkObjectId}");
+            Debug.Log($"Catcher is : {NetworkManager.Singleton.LocalClientId}");
+            HandlePlayerDeathServerRpc(deadPlayer.OwnerClientId);
+        }
+
         //var deadPlayer = other.GetComponent<AnimationAndMovementControllerNetwork>();
         //Debug.Log($"Dead player is : {deadPlayer.NetworkObjectId}");
         //Debug.Log($"Catcher is : {NetworkManager.Singleton.LocalClientId}");
@@ -101,11 +120,11 @@ public class CatcherScript : NetworkBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if(!isActiveAndEnabled)
+        if (!isActiveAndEnabled)
             return;
-        if(other.gameObject.CompareTag("PowerSource") && IsServer)
-        {   
-           
+        if (other.gameObject.CompareTag("PowerSource") && IsServer)
+        {
+
             HandlePowerSourceExit();
             return;
         }
@@ -123,7 +142,7 @@ public class CatcherScript : NetworkBehaviour
 
         var switcherScript = caughtNetObj.GetComponent<SwitcherScript>();
         if (switcherScript == null) return;
-        
+
         Switcher caughtSwitcher = switcherScript.thisSwitcher;
 
         if (caughtSwitcher.IsDead())
@@ -164,7 +183,8 @@ public class CatcherScript : NetworkBehaviour
     {
         Debug.Log("You died!");
         var localPlayerObject = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject();
-        if (localPlayerObject != null) {
+        if (localPlayerObject != null)
+        {
             localPlayerObject.GetComponent<AnimationAndMovementControllerNetwork>().enabled = false;
             //localPlayerObject.GetComponent<Animator>().SetTrigger("Die");
             StartCoroutine(waitAndPlayDeathAnimation(localPlayerObject));
@@ -176,8 +196,9 @@ public class CatcherScript : NetworkBehaviour
         yield return new WaitForSeconds(1.5f);
         localPlayerObject.GetComponent<Animator>().SetTrigger("Die");
     }
-    public void ChangeCursedPole(PoleType cursedType) {
-     
+    public void ChangeCursedPole(PoleType cursedType)
+    {
+
         SetCursedPoleTypeServerRpc(cursedType);
     }
     [ServerRpc(RequireOwnership = false)]
@@ -190,16 +211,16 @@ public class CatcherScript : NetworkBehaviour
     void CatcherRoutineAfterCatchingSwitcherClientRpc()
     {
         Debug.Log("Attacking");
-        
+
         if (IsOwner)
         {
             animator.SetTrigger("Catcher_Attack");
             movementControllerNetwork.enabled = false;
         }
         magicInCatcherHand.SetActive(true);
-        if(currentSwitcherInRange != null)
-        {  
-           Vector3 targetPos = currentSwitcherInRange.transform.position;
+        if (currentSwitcherInRange != null)
+        {
+            Vector3 targetPos = currentSwitcherInRange.transform.position;
             Vector3 targetPositionForMagic = new Vector3(targetPos.x, targetPos.y + 5, targetPos.z);
             magicInCatcherHand.transform.DOScale(0.5f, 0.5f).SetEase(Ease.InBounce);
             magicInCatcherHand.transform.DOMove(targetPositionForMagic, 1f).SetDelay(0.8f)
@@ -209,17 +230,17 @@ public class CatcherScript : NetworkBehaviour
                     {
                         movementControllerNetwork.enabled = true;
                     }
-                    
+
                     magicInCatcherHand.SetActive(false);
 
                     magicInCatcherHand.transform.localPosition = magicLocalPosition;
                     magicInCatcherHand.transform.localScale = Vector3.zero;
                     currentSwitcherInRange.GetComponent<PlayerVisuals>().ActivateSwitcherHits();
-                    
+
                 });
 
         }
-        
+
     }
 
     IEnumerator waitToEnableCatcherMovement()
@@ -234,45 +255,94 @@ public class CatcherScript : NetworkBehaviour
     void StartPowerDrainTimer()
     {
         if (!IsServer) return;
-        if(powerDrainCoroutine  != null) StopCoroutine(powerDrainCoroutine);
+        if (powerDrainCoroutine != null) StopCoroutine(powerDrainCoroutine);
 
         powerDrainCoroutine = StartCoroutine(PowerDrainCoroutine());
     }
     void HandlePowerSourceEnter()
-    {   
+    {
         Debug.Log("Entered power source");
         if (!IsServer) return;
-        if(powerRechargeCoroutine != null) StopCoroutine(powerRechargeCoroutine);
+        if (powerRechargeCoroutine != null) StopCoroutine(powerRechargeCoroutine);
         powerRechargeCoroutine = StartCoroutine(PowerRechargeCoroutine());
-        
+
     }
 
     void HandlePowerSourceExit()
-    {   
-        Debug.Log("Exited power source");   
+    {
+        Debug.Log("Exited power source");
         if (!IsServer) return;
-        if(powerRechargeCoroutine != null) StopCoroutine(powerRechargeCoroutine);
+        if (powerRechargeCoroutine != null) StopCoroutine(powerRechargeCoroutine);
         powerRechargeCoroutine = null;
         StartPowerDrainTimer();
+        foreach (GameObject prefab in spawnedPrefabs)
+        {
+            if (prefab != null)
+            {
+                Destroy(prefab);
+            }
+        }
+    }
+
+    public void ScaleRoutine()
+    {
+        if (IsServer) currentCatcherPowerValue.Value++;
+
+        if (transitionig) return;
+        transform.DOScale(scaleDownValue, scaleDownTime).OnComplete(() =>
+        {
+            transform.DOScale(new Vector3(1, 1, 1), scaleUpTime).OnComplete(() => { transitionig = false; });
+        });
     }
     IEnumerator PowerDrainCoroutine()
-    {   
+    {
         Debug.Log("Started power drain");
-        yield return new WaitForSeconds(powerDuration); 
+        yield return new WaitForSeconds(powerDuration);
         hasPowers.Value = false;
         powerDrainCoroutine = null;
+        currentCatcherPowerValue.Value = 0;
         Debug.Log("Catcher has powers: " + hasPowers.Value);
     }
 
     IEnumerator PowerRechargeCoroutine()
-    {   
-        if(powerDrainCoroutine != null) StopCoroutine(powerDrainCoroutine);
-        yield return new WaitForSeconds(powerRechargeDuration);
+    {
+        if (powerDrainCoroutine != null) StopCoroutine(powerDrainCoroutine);
+
+        while (currentCatcherPowerValue.Value < 5)
+        {
+            yield return null;
+            continue;
+        }
+        //yield return new WaitForSeconds(powerRechargeDuration);
         hasPowers.Value = true;
         powerRechargeCoroutine = null;
         Debug.Log("Catcher has powers: " + hasPowers.Value);
     }
 
-   
+    IEnumerator DropPowerPrefabCoroutine()
+    {
+        Debug.Log("Dropping powers");
+
+        foreach (Transform spawnPoint in powerPrefabSpawnTransforms)
+        {
+            spawnedPrefabs.Add(Instantiate(powerSourcePrefab, spawnPoint.position, Quaternion.identity));
+            Debug.Log("Spawned obj 1");
+            yield return new WaitForSeconds(0.5f);
+        }
+
+    }
+
+    IEnumerator GetPowerSourceDropPointsCoroutine()
+    {
+        GameObject parent = GameObject.Find("CatcherPowerSourceDropPoints");
+        foreach (Transform child in parent.transform)
+        {
+            yield return null;
+            powerPrefabSpawnTransforms.Add(child);
+        }
+        yield return null;
+
+    }
+
 
 }

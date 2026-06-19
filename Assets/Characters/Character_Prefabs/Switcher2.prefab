@@ -117,8 +117,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2591827856803707676}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.43318874, y: -1.212515e-15, z: 3.9177116e-16, w: 0.90130323}
-  m_LocalPosition: {x: 0.055136133, y: 4.9600387, z: -3.33}
+  m_LocalRotation: {x: 0.027289385, y: -0.12380002, z: 0.0034059254, w: 0.991926}
+  m_LocalPosition: {x: 0.55129796, y: 1.0711956, z: -2.0867426}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -201,7 +201,7 @@ MonoBehaviour:
     SplineCurvature: 0.541
   RecenteringTarget: 2
   HorizontalAxis:
-    Value: 0
+    Value: -14.228334
     Center: 0
     Range: {x: -180, y: 180}
     Wrap: 1
@@ -211,7 +211,7 @@ MonoBehaviour:
       Time: 2
     Restrictions: 0
   VerticalAxis:
-    Value: 17.5
+    Value: -9.696514
     Center: 17.5
     Range: {x: -10, y: 45}
     Wrap: 0
@@ -424,8 +424,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7168972530220278455}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.43318874, y: -1.3318858e-15, z: 6.401374e-16, w: 0.90130323}
-  m_LocalPosition: {x: 0.055136133, y: 4.9600387, z: -3.33}
+  m_LocalRotation: {x: 0.027289385, y: -0.12380002, z: 0.0034059254, w: 0.991926}
+  m_LocalPosition: {x: 0.55129796, y: 1.0711956, z: -2.0867426}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -537,7 +537,7 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
+  m_RenderPostProcessing: 1
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
@@ -2310,6 +2310,12 @@ MonoBehaviour:
   catcherCanvas: {fileID: 5423567606001672164}
   magicInCatcherHand: {fileID: 317505152827923748}
   movementControllerNetwork: {fileID: 5663032435374993758}
+  powerDuration: 400
+  powerRechargeDuration: 5
+  powerSourcePrefab: {fileID: 1758504048463491537, guid: df106adb09feddf45926ee43224faa9a, type: 3}
+  scaleDownTime: 0.3
+  scaleUpTime: 0.5
+  scaleDownValue: {x: 1.2, y: 1.2, z: 1.2}
 --- !u!114 &3110308216877367268
 MonoBehaviour:
   m_ObjectHideFlags: 0

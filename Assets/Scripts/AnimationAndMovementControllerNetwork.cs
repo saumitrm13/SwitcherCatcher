@@ -10,10 +10,12 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
 {
     [SerializeField] CinemachineCamera FLCam;
     [SerializeField] AudioListener listener;
+    [SerializeField] Camera cinemachineBrainCamera;
     CharacterInputs characterInputs;
     Vector2 currentMovementInput;
     Vector3 currentMovement;
     Vector3 currentRunMovement;
+    Vector3 _cameraRelativeMovement;
     [SerializeField] float rotationFactorPerFrame = 15.0f;
     [SerializeField] float movementSpeed = 5f;
     //[SerializeField] GameObject throwablePrefab;
@@ -215,9 +217,9 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
     void handleRotation()
     {
         Vector3 positionToLookAt;
-        positionToLookAt.x = currentMovement.x;
+        positionToLookAt.x = _cameraRelativeMovement.x;
         positionToLookAt.y = 0f;
-        positionToLookAt.z = currentMovement.z;
+        positionToLookAt.z = _cameraRelativeMovement.z;
 
         if (isMovementPressed)
         {
@@ -293,19 +295,20 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
         }
 
         handleAnimation();
-        handleRotation();
+        
 
         if (!isAttacking && !isFalling)
         {
             if (isRunPressed)
             {
+                _cameraRelativeMovement = ConvertToCameraSpace(currentRunMovement);
 
-                characterController.Move(currentRunMovement * Time.deltaTime * movementSpeed);
+                characterController.Move(_cameraRelativeMovement * Time.deltaTime * movementSpeed);
             }
             else
             {
-
-                characterController.Move(currentMovement * Time.deltaTime * movementSpeed);
+                _cameraRelativeMovement = ConvertToCameraSpace(currentMovement);
+                characterController.Move(_cameraRelativeMovement * Time.deltaTime * movementSpeed);
             }
 
 
@@ -318,9 +321,29 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
             //    ThrowObstacleServerRpc();
             //}
         }
+        handleRotation();
 
     }
 
+    Vector3 ConvertToCameraSpace(Vector3 vectorToRotate)
+    {   
+        float currentYValue = vectorToRotate.y; 
+        Vector3 cameraForward = cinemachineBrainCamera.transform.forward;
+        Vector3 cameraRight = cinemachineBrainCamera.transform.right;
+
+        cameraForward.y = 0f;
+        cameraRight.y = 0f;
+
+        cameraForward = cameraForward.normalized;
+        cameraRight = cameraRight.normalized;
+
+        Vector3 cameraForwardZProduct = vectorToRotate.z * cameraForward;
+        Vector3 cameraRightXProduct = vectorToRotate.x * cameraRight;
+
+        Vector3 vectorRotatedToCameraSpace = cameraForwardZProduct + cameraRightXProduct;
+        vectorRotatedToCameraSpace.y = currentYValue; // Preserve the original Y value
+        return vectorRotatedToCameraSpace;
+    }
     void CheckRole()
     {
 

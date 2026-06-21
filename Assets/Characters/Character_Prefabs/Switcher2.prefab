@@ -102,6 +102,7 @@ GameObject:
   - component: {fileID: 6100885888111896941}
   - component: {fileID: 4267211614643106391}
   - component: {fileID: 4978014866508995998}
+  - component: {fileID: 6572775934225134124}
   m_Layer: 3
   m_Name: FreeLook Camera (1)
   m_TagString: Untagged
@@ -117,8 +118,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2591827856803707676}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.027289385, y: -0.12380002, z: 0.0034059254, w: 0.991926}
-  m_LocalPosition: {x: 0.55129796, y: 1.0711956, z: -2.0867426}
+  m_LocalRotation: {x: 0.1825284, y: 0.23392378, z: -0.04476038, w: 0.95391804}
+  m_LocalPosition: {x: -1.0829769, y: 1.9372799, z: -2.3110094}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -148,7 +149,7 @@ MonoBehaviour:
     LookAtTarget: {fileID: 0}
     CustomLookAtTarget: 0
   Lens:
-    FieldOfView: 127.02942
+    FieldOfView: 90
     OrthographicSize: 5
     NearClipPlane: 0.3
     FarClipPlane: 1000
@@ -201,7 +202,7 @@ MonoBehaviour:
     SplineCurvature: 0.541
   RecenteringTarget: 2
   HorizontalAxis:
-    Value: -14.228334
+    Value: 27.556837
     Center: 0
     Range: {x: -180, y: 180}
     Wrap: 1
@@ -211,7 +212,7 @@ MonoBehaviour:
       Time: 2
     Restrictions: 0
   VerticalAxis:
-    Value: -9.696514
+    Value: -2.7621834
     Center: 17.5
     Range: {x: -10, y: 45}
     Wrap: 0
@@ -396,6 +397,22 @@ MonoBehaviour:
   maxForce: 1.25
   minSmallForce: 0.25
   maxSmallForce: 0.75
+--- !u!114 &6572775934225134124
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2591827856803707676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb7194dc27b9df64c8beca7482ee8e0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  PlayerIndex: -1
+  AutoEnableInputs: 1
+  XYAxis: {fileID: -5630151704836100654, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  ZAxis: {fileID: 0}
 --- !u!1 &7168972530220278455
 GameObject:
   m_ObjectHideFlags: 0
@@ -424,8 +441,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7168972530220278455}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.027289385, y: -0.12380002, z: 0.0034059254, w: 0.991926}
-  m_LocalPosition: {x: 0.55129796, y: 1.0711956, z: -2.0867426}
+  m_LocalRotation: {x: -0.023408726, y: 0.2380985, z: 0.005740387, w: 0.97094196}
+  m_LocalPosition: {x: -1.7932271, y: 0.7672762, z: -3.672089}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -496,7 +513,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 127.02942
+  field of view: 90
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -2168,6 +2185,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   FLCam: {fileID: 4094316319039313186}
   listener: {fileID: 5417672378845712598}
+  cinemachineBrainCamera: {fileID: 7052469977036121252}
   rotationFactorPerFrame: 15
   movementSpeed: 3
   maxJumpTime: 2

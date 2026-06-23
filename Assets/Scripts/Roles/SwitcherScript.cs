@@ -23,7 +23,8 @@ public class SwitcherScript : NetworkBehaviour
     public NetworkVariable<bool> isEligibleToStealNet =
     new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server); 
     bool serverSignalToSteal = true;
-    bool isStealingNow = false; 
+    bool isStealingNow = false;
+
     Pole currentPole;
     Transform currentColliderTransform;
     DangerVisuals dangerVisuals;
@@ -48,6 +49,8 @@ public class SwitcherScript : NetworkBehaviour
     public NetworkVariable<PoleType> targetPoleType = new NetworkVariable<PoleType>(
         PoleType.None, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+    public NetworkVariable<bool> isCompletingATask = new NetworkVariable<bool>(
+        false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public override void OnNetworkSpawn()
     {   
         Debug.Log("Switcher assigned");
@@ -288,7 +291,7 @@ public class SwitcherScript : NetworkBehaviour
             targetPoleType.Value = targetPole.Type;
             
             NotifyClientAboutThePoleClientRpc(notification, false, clientRpcParams);
-
+            isCompletingATask.Value = true; 
             ShowProblemToPlayerClientRpc();
             StartTaskTimer();  
            
@@ -480,16 +483,19 @@ public class SwitcherScript : NetworkBehaviour
     public void StopTaskTimer()
     {
         if (!IsServer) return;
+        isCompletingATask.Value = false;    
         if (taskTimerCoroutine != null)
         {
             StopCoroutine(taskTimerCoroutine);
             taskTimerCoroutine = null;
         }
         HideTimerClientRpc(clientRpcParams);
+
     }
 
     IEnumerator TaskTimerCoroutine()
-    {
+    {   
+        
         int remaining = Mathf.CeilToInt(taskTimeLimit);
         while (remaining > 0)
         {
@@ -551,7 +557,8 @@ public class SwitcherScript : NetworkBehaviour
 
     [ClientRpc]
     void UpdateTimerClientRpc(int secondsRemaining, ClientRpcParams clientRpcParams = default)
-    {
+    {   
+        
         var handler = SwitcherRquestHandler.LocalOwnerInstance;
         if (handler?.switcherUIFunctions != null)
             handler.switcherUIFunctions.ShowTimeRemaining(secondsRemaining);
@@ -761,5 +768,10 @@ public class SwitcherScript : NetworkBehaviour
     //    RoutineAfterBeingStealVictimServerRpc();
     //}
 
+
+    public float GetTaskTimeLimit()
+    {
+        return taskTimeLimit;
+    }   
 
 }

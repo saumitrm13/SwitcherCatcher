@@ -2,6 +2,10 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Pool;
 using System.Collections.Generic;
+using UnityEngine.UI;
+using UnityEngine.Rendering;
+using System;
+using DG.Tweening;
 
 public class PathRenderer : MonoBehaviour
 {
@@ -18,6 +22,9 @@ public class PathRenderer : MonoBehaviour
     [SerializeField] float moveThreshold = 0.5f;        // Min player movement to trigger recalc
     [SerializeField] int maxPoolSize = 50;              // Cap on pooled arrow objects
 
+    [SerializeField] Slider timeRemainingSlider;
+    float totalTime = new float();
+
     NavMeshPath path;
     PoleType lastKnownTargetType = PoleType.None;
     Vector3 cachedTargetPosition;
@@ -32,7 +39,7 @@ public class PathRenderer : MonoBehaviour
 
     void Awake()
     {
-        arrowPool = new ObjectPool<GameObject>(
+        arrowPool = new UnityEngine.Pool.ObjectPool<GameObject>(
             createFunc: () => Instantiate(arrowPrefab),
             actionOnGet: arrow => arrow.SetActive(true),
             actionOnRelease: arrow => arrow.SetActive(false),
@@ -41,11 +48,29 @@ public class PathRenderer : MonoBehaviour
             defaultCapacity: 10,
             maxSize: maxPoolSize
         );
+        
     }
 
     void Start()
     {
         path = new NavMeshPath();
+        totalTime = switcherScript.GetTaskTimeLimit();
+        switcherScript.isCompletingATask.OnValueChanged += HandleTimeRemainingSlider;
+    }
+
+    private void HandleTimeRemainingSlider(bool previousValue, bool newValue)
+    {
+        if (newValue)
+        {
+            timeRemainingSlider.value = 0;
+            timeRemainingSlider.gameObject.SetActive(true);
+            timeRemainingSlider.DOValue(0,1f).SetEase(Ease.Linear).OnComplete(() => timeRemainingSlider.gameObject.SetActive(false));
+
+        }
+        else
+        {
+            timeRemainingSlider.gameObject.SetActive(false);    
+        }
     }
 
     void Update()
@@ -154,4 +179,6 @@ public class PathRenderer : MonoBehaviour
 
     void OnDisable() => ReleaseAllArrows();
     void OnDestroy() => ReleaseAllArrows();
+
+    
 }

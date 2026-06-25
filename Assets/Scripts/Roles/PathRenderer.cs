@@ -23,6 +23,7 @@ public class PathRenderer : MonoBehaviour
     [SerializeField] int maxPoolSize = 50;              // Cap on pooled arrow objects
 
     [SerializeField] Slider timeRemainingSlider;
+    [SerializeField] GameObject taskIndicaatorVFX;
     float totalTime = new float();
 
     NavMeshPath path;
@@ -59,17 +60,22 @@ public class PathRenderer : MonoBehaviour
     }
 
     private void HandleTimeRemainingSlider(bool previousValue, bool newValue)
-    {
+    {   
+        Debug.Log($"HandleTimeRemainingSlider called with newValue: {newValue}");
+
         if (newValue)
-        {
+        {   
+            Debug.Log($"Activating time remaining slider with totalTime: {totalTime}");
             timeRemainingSlider.value = 0;
             timeRemainingSlider.gameObject.SetActive(true);
-            timeRemainingSlider.DOValue(0,1f).SetEase(Ease.Linear).OnComplete(() => timeRemainingSlider.gameObject.SetActive(false));
+            taskIndicaatorVFX.SetActive(true);
+            timeRemainingSlider.DOValue(1f,totalTime).SetEase(Ease.Linear).OnComplete(() => timeRemainingSlider.gameObject.SetActive(false));
 
         }
         else
         {
             timeRemainingSlider.gameObject.SetActive(false);    
+            taskIndicaatorVFX.SetActive(false);
         }
     }
 

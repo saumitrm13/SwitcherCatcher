@@ -161,6 +161,9 @@ public class SwitcherScript : NetworkBehaviour
                 currentPole.Occupy();
                 PlaySuccessVFXClientRpc(clientRpcParams);
                 return;
+            }else if(thisSwitcher.getTargetPoleType() != currentPole.Type)
+            {
+                InvalidPoleEntryRoutineClientRpc(clientRpcParams);
             }
             else
             {

@@ -419,7 +419,7 @@ public class LobbyCanvasFunction : MonoBehaviour
             ActivatePanel(playerNamePanel);
             return;
         }
-        userNameText.text = "Hi " + savedPlayerName + "!";
+        userNameText.text =  savedPlayerName;
         ActivatePanel(FirstPanel);
         if (!string.IsNullOrWhiteSpace(savedPlayerName)  && string.IsNullOrWhiteSpace(playerNameInputField.text))
             playerNameInputField.text = savedPlayerName;
@@ -440,7 +440,7 @@ public class LobbyCanvasFunction : MonoBehaviour
         // (Optional) Persist across sessions
         PlayerPrefs.SetString("PlayerName", _localPlayerName);
         PlayerPrefs.Save();
-        userNameText.text = "Hi "+name + "!";
+        userNameText.text = name;
         // Navigate to the main lobby menu panel
         ActivatePanel(FirstPanel);
     }

@@ -58,6 +58,7 @@ public class GameStartManager : NetworkBehaviour
         boundariesBeforeGameStart.SetActive(false);
         gameStartCanvas.localScale = (Vector3.one);
         lobbyCanvas.localScale = (Vector3.zero);
+        DisconnectManager.MarkGameStarted();
     }
 }
 

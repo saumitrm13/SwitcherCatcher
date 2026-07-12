@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using Unity.Netcode;
 using Unity.Services.Lobbies.Models;
@@ -14,6 +15,10 @@ public class GameStartManager : NetworkBehaviour
     [SerializeField] private RectTransform gameStartCanvas;
     [SerializeField] private RectTransform lobbyCanvas;
     [SerializeField] private GameObject CatcherPowerSource;
+    [SerializeField] private float TimePerRound = 120f;
+
+    Coroutine roundTimerCoroutine;
+
     // Populated externally when players connect (Auth ID → Netcode Client ID)
     // e.g. fill this from your player spawn manager on client connect
     public static Dictionary<string, ulong> AuthToClientId = new();
@@ -40,6 +45,29 @@ public class GameStartManager : NetworkBehaviour
             Debug.LogError($"[GameStartManager] Could not find player object for client {catcherClientId}");
         }
         StartGameForEveryClientClientRpc();
+
+        if (roundTimerCoroutine != null) StopCoroutine(roundTimerCoroutine);
+        roundTimerCoroutine = StartCoroutine(RoundTimerCoroutine());
+    }
+
+    IEnumerator RoundTimerCoroutine()
+    {
+        yield return new WaitForSeconds(TimePerRound);
+        roundTimerCoroutine = null;
+        RoutineAfterRoundEnd();
+    }
+
+    public void RoutineAfterRoundEnd()
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+
+        if (roundTimerCoroutine != null)
+        {
+            StopCoroutine(roundTimerCoroutine);
+            roundTimerCoroutine = null;
+        }
+
+        RoutineAfterRoundEndClientRpc();
     }
 
     [ClientRpc]
@@ -60,5 +88,14 @@ public class GameStartManager : NetworkBehaviour
         lobbyCanvas.localScale = (Vector3.zero);
         DisconnectManager.MarkGameStarted();
     }
-}
 
+    [ClientRpc]
+    void RoutineAfterRoundEndClientRpc()
+    {
+        GameSessionData.Instance.HasGameStartedYet = false;
+        CatcherPowerSource.SetActive(false);
+        boundariesBeforeGameStart.SetActive(true);
+        gameStartCanvas.localScale = (Vector3.zero);
+        lobbyCanvas.localScale = (Vector3.one);
+    }
+}

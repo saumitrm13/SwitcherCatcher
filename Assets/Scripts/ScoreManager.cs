@@ -1,4 +1,4 @@
-﻿using Unity.Netcode;
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
@@ -79,10 +79,29 @@ public class ScoreManager : NetworkBehaviour
         EnsureEntryExists(clientId);
     }
 
-    // Optionally keep the entry on disconnect so the score is still visible on the
-    // scoreboard for the remainder of the session. Remove this if you prefer to
-    // drop disconnected players.
-    private void OnClientDisconnected(ulong clientId) { /* keep entry */ }
+    private void OnClientDisconnected(ulong clientId)
+    {
+        if (!IsServer) return;
+        RemovePlayerScore(clientId);
+    }
+
+    /// <summary>
+    /// Server-only. Removes a player's score entry from the replicated list.
+    /// Triggers OnListChanged on all clients so ScoreboardUI refreshes automatically.
+    /// </summary>
+    public void RemovePlayerScore(ulong clientId)
+    {
+        if (!IsServer) return;
+        for (int i = 0; i < PlayerScores.Count; i++)
+        {
+            if (PlayerScores[i].ClientId == clientId)
+            {
+                PlayerScores.RemoveAt(i);
+                Debug.Log($"[ScoreManager] Removed score entry for departed client {clientId}.");
+                return;
+            }
+        }
+    }
 
     // ── Public scoring API (call only on the server) ──────────────────────────
 

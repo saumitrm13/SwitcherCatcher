@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using UnityEngine;
 
@@ -192,14 +193,55 @@ public class DisconnectManager : NetworkBehaviour
     private void OnServer_ClientDisconnected(ulong clientId)
     {
         if (!IsServer) return;
-        if (!gameHasStarted) return;
 
-        // The host's own clientId disconnecting from itself doesn't happen through
-        // this callback (that's a server shutdown, not a client disconnect), so
-        // anything reaching here mid-game is a genuine non-host client leaving.
+        if (!gameHasStarted)
+        {
+            // Pre-game: player was still in the lobby. Remove them from the
+            // Unity lobby so the lobby player list stays consistent for everyone.
+            TryRemovePlayerFromLobbyAsync(clientId);
+            return;
+        }
+
+        // Mid-game: broadcast the departure so every client can react.
         Debug.Log($"[DisconnectManager] Client {clientId} disconnected mid-game.");
-
         NotifyClientLeftClientRpc(clientId);
+    }
+
+    /// <summary>
+    /// Best-effort async lobby removal for a client that dropped before the game
+    /// started. Uses GameSessionData.ClientIdToLobbyPlayerId to map the Netcode
+    /// clientId back to the Unity Services Player ID that the Lobby API requires.
+    /// Only the host can call RemovePlayerAsync, which is fine — this method is
+    /// server-only and in this project the host IS the relay server.
+    /// </summary>
+    private static async void TryRemovePlayerFromLobbyAsync(ulong clientId)
+    {
+        var lobby = LobbyFeatures.GetCurrentLobby();
+        if (lobby == null) return;
+
+        if (GameSessionData.Instance == null ||
+            !GameSessionData.Instance.ClientIdToLobbyPlayerId.TryGetValue(clientId, out string lobbyPlayerId))
+        {
+            Debug.LogWarning($"[DisconnectManager] No lobby player ID mapping found for client {clientId}; cannot remove from lobby.");
+            return;
+        }
+
+        // Guard: don't try to remove the host from its own lobby.
+        if (lobbyPlayerId == AuthenticationService.Instance.PlayerId)
+        {
+            Debug.LogWarning("[DisconnectManager] Attempted to remove host from lobby — skipping.");
+            return;
+        }
+
+        try
+        {
+            await LobbyService.Instance.RemovePlayerAsync(lobby.Id, lobbyPlayerId);
+            Debug.Log($"[DisconnectManager] Removed lobby player {lobbyPlayerId} (client {clientId}) after pre-game disconnect.");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[DisconnectManager] Failed to remove lobby player {lobbyPlayerId}: {e.Message}");
+        }
     }
 
     /// <summary>

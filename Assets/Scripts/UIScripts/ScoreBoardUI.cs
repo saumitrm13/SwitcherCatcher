@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using Unity.Netcode;
@@ -41,7 +41,7 @@ public class ScoreboardUI : MonoBehaviour
 
     private void OnDisable()
     {
-        GameSessionData.OnPlayerNamesUpdated += RefreshUI;
+        GameSessionData.OnPlayerNamesUpdated -= RefreshUI;
         if (ScoreManager.Instance != null)
             ScoreManager.Instance.PlayerScores.OnListChanged -= OnScoresChanged;
     }

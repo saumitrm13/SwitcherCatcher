@@ -10,6 +10,11 @@ public class GameSessionData : MonoBehaviour
     public bool IsRelayHost { get; set; }
     public Dictionary<ulong, string> ClientIdToName { get; private set; } = new Dictionary<ulong, string>();
     public static event Action OnPlayerNamesUpdated;
+
+    public Dictionary<ulong, string> ClientIdToLobbyPlayerId { get; private set; } = new Dictionary<ulong, string>();
+    public static event Action OnClientIdMappingUpdated;
+
+    
     void Awake()
     {
         if (Instance != null) { Destroy(gameObject); return; }
@@ -22,5 +27,11 @@ public class GameSessionData : MonoBehaviour
     {
         ClientIdToName[clientId] = playerName;
         OnPlayerNamesUpdated?.Invoke();
+    }
+
+    public void RegisterLobbyPlayerId(ulong clientId, string lobbyPlayerId)
+    {
+        ClientIdToLobbyPlayerId[clientId] = lobbyPlayerId;
+        OnClientIdMappingUpdated?.Invoke();
     }
 }

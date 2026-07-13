@@ -241,11 +241,13 @@ public class LobbyFeatures : MonoBehaviour
         foreach (Player player in currentLobby.Players)
         {
             GameObject playerInfo = Instantiate(playerInfoPrefab, verticalLayoutGroupForPlayerInfo);
+            PlayerInfoUI infoUI = playerInfo.GetComponent<PlayerInfoUI>();
+            infoUI?.SetupPlayerScoreTracking(player.Id);
             playerInfo.transform.Find("PlayerIDText").GetComponent<TextMeshProUGUI>().text = player.Id;
             playerInfo.transform.Find("PlayerNameText").GetComponent<TextMeshProUGUI>().text
                 = player.Data != null && player.Data.ContainsKey("PlayerName")
                 ? player.Data["PlayerName"].Value : "Unknown";
-
+           
             Button kickOutBtn = playerInfo.transform.Find("KickOutBtn")?.GetComponent<Button>();
             if (kickOutBtn != null)
             {

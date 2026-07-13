@@ -117,7 +117,7 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
         Netcode_Functions netFunctions = FindAnyObjectByType<Netcode_Functions>();
         if (netFunctions != null && netFunctions.IsSpawned)
         {
-            netFunctions.RegisterPlayerNameServerRpc(playerName);
+            netFunctions.RegisterPlayerNameServerRpc(playerName, AuthenticationService.Instance.PlayerId);
         }
         else
         {

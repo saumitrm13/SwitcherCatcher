@@ -282,6 +282,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5368855721529751349}
   - component: {fileID: 6972822015353132471}
+  - component: {fileID: 4841926783032675570}
   m_Layer: 5
   m_Name: IndividualPlayerInfoOnLobby
   m_TagString: Untagged
@@ -321,6 +322,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4304458834225253391}
   m_CullTransparentMesh: 1
+--- !u!114 &4841926783032675570
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4304458834225253391}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf293a427c1b9d7458c635a1f8473bdb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerScoreText: {fileID: 5502155890928592634}
 --- !u!1 &4651503559353930375
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,5 +1,6 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using Unity.Netcode;
 using Unity.Services.Lobbies.Models;
@@ -28,26 +29,117 @@ public class GameStartManager : NetworkBehaviour
         CatcherPowerSource.SetActive(true);
         if (!NetworkManager.Singleton.IsServer) return;
 
-        var connectedClientIds = new List<ulong>(NetworkManager.Singleton.ConnectedClientsIds);
-        if (connectedClientIds.Count == 0) return;
+        // Increment before branching so RoundNumber == 1 on the very first call.
+        GameSessionData.Instance.RoundNumber++;
+        Debug.Log($"[GameStartManager] Starting round {GameSessionData.Instance.RoundNumber}.");
 
-        ulong catcherClientId = connectedClientIds[Random.Range(0, connectedClientIds.Count)];
-
-        // Get the player object for that client and assign catcher role
-        if (NetworkManager.Singleton.ConnectedClients.TryGetValue(catcherClientId, out var client))
+        if (GameSessionData.Instance.RoundNumber == 1)
         {
-            client.PlayerObject.GetComponent<PlayerVisuals>().AssignAsCatcher();
-            GameSessionData.Instance.CatcherPlayerId = catcherClientId.ToString();
-            Debug.Log($"[GameStartManager] Catcher assigned: client {catcherClientId}");
+            // ── First round: choose a random catcher ──────────────────────────
+            var connectedClientIds = new List<ulong>(NetworkManager.Singleton.ConnectedClientsIds);
+            if (connectedClientIds.Count == 0) return;
+
+            ulong catcherClientId = connectedClientIds[Random.Range(0, connectedClientIds.Count)];
+
+            if (NetworkManager.Singleton.ConnectedClients.TryGetValue(catcherClientId, out var client))
+            {
+                client.PlayerObject.GetComponent<PlayerVisuals>().AssignAsCatcher();
+                GameSessionData.Instance.CatcherPlayerId = catcherClientId.ToString();
+                Debug.Log($"[GameStartManager] Catcher assigned: client {catcherClientId}");
+            }
+            else
+            {
+                Debug.LogError($"[GameStartManager] Could not find player object for client {catcherClientId}");
+            }
+
+            StartGameForEveryClientClientRpc();
+
+            if (roundTimerCoroutine != null) StopCoroutine(roundTimerCoroutine);
+            roundTimerCoroutine = StartCoroutine(RoundTimerCoroutine());
         }
         else
         {
-            Debug.LogError($"[GameStartManager] Could not find player object for client {catcherClientId}");
+            // ── Subsequent rounds: run the inter-round routine instead ─────────
+            NewRoundRoutine();
         }
+    }
+
+    /// <summary>
+    /// Server-only. Called at the start of every round after the first.
+    /// Resets all pole ownership, player positions, and switcher state.
+    /// Scores in ScoreManager are intentionally preserved across rounds.
+    /// </summary>
+    private void NewRoundRoutine()
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+
+        Debug.Log($"[GameStartManager] NewRoundRoutine() — round {GameSessionData.Instance.RoundNumber}.");
+
+        // ── 1. Reset every Pole's ownership and occupancy state ───────────────
+        var allPoleScripts = FindObjectsByType<PoleScript>(FindObjectsSortMode.None);
+        foreach (var poleScript in allPoleScripts)
+        {
+            poleScript.thisPole.Abandon();
+        }
+        Debug.Log($"[GameStartManager] Reset {allPoleScripts.Length} poles to ownerless state.");
+
+        // ── 2. Reset every SwitcherScript's server-side state ─────────────────
+        var allSwitchers = FindObjectsByType<SwitcherScript>(FindObjectsSortMode.None);
+        foreach (var sw in allSwitchers)
+        {
+            // Clear replicated NetworkVariables (automatically propagated to clients)
+            sw.ownedPoleType.Value  = PoleType.None;
+            sw.targetPoleType.Value = PoleType.None;
+            sw.isCompletingATask.Value = false;
+
+            // Clear the local Switcher data object (owned pole, target pole)
+            if (sw.thisSwitcher != null)
+                sw.thisSwitcher.Eliminate();
+
+            // Stop any running task timer and hide its UI on the owning client
+            sw.StopTaskTimer();
+
+            // Reset in-transit resource flag (server-side field)
+            sw.hasNecessaryResource = false;
+        }
+        Debug.Log($"[GameStartManager] Reset {allSwitchers.Length} switcher states.");
+
+        // ── 3. Teleport every player NetworkObject back to the origin ──────────
+        foreach (var kvp in NetworkManager.Singleton.ConnectedClients)
+        {
+            NetworkObject playerObj = kvp.Value.PlayerObject;
+            if (playerObj != null)
+                playerObj.transform.position = new Vector3(0, 0.4580349f,0);
+        }
+        Debug.Log("[GameStartManager] Teleported all players to Vector3.zero.");
+
+        // ── 4. Broadcast to all clients for local cleanup + fire the event ─────
+        ResetForNewRoundClientRpc();
+
+        // ── 5. Re-use the normal game-start broadcast and restart the timer ────
         StartGameForEveryClientClientRpc();
 
         if (roundTimerCoroutine != null) StopCoroutine(roundTimerCoroutine);
         roundTimerCoroutine = StartCoroutine(RoundTimerCoroutine());
+    }
+
+    /// <summary>
+    /// Runs on every machine when a new round (2+) starts.
+    /// Clears any client-local state that the server can't reach directly,
+    /// then fires the OnNewRoundStarted event so subscribers can react.
+    /// </summary>
+    [ClientRpc]
+    private void ResetForNewRoundClientRpc()
+    {
+        // Reset the local SwitcherScript instance's resource flag
+        // (hasNecessaryResource is a plain bool, not a NetworkVariable)
+        if (SwitcherScript.localOwnerInstance != null)
+            SwitcherScript.localOwnerInstance.hasNecessaryResource = false;
+
+        // Fire the global new-round event so any listener (UI, VFX, audio…) can react
+        GameSessionData.RaiseNewRoundStarted();
+
+        Debug.Log($"[GameStartManager] New round started (round {GameSessionData.Instance.RoundNumber}). OnNewRoundStarted fired.");
     }
 
     IEnumerator RoundTimerCoroutine()

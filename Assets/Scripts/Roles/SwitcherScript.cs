@@ -60,6 +60,7 @@ public class SwitcherScript : NetworkBehaviour
         debugText = GameObject.Find("DebugText").GetComponent<TextMeshProUGUI>();
         ownedPoleText = GameObject.Find("DebugText3").GetComponent<TextMeshProUGUI>();
         triggerCaseText = GameObject.Find("TriggerCaseText").GetComponent<TextMeshProUGUI>();
+        GameStartManager.OnRoundEnded += SwitcherScriptRoutineAfterRoundEnd;
         clientRpcParams = new ClientRpcParams
         {
             Send = new ClientRpcSendParams
@@ -80,6 +81,14 @@ public class SwitcherScript : NetworkBehaviour
         {
             localOwnerInstance = this;
         }
+    }
+
+    private void SwitcherScriptRoutineAfterRoundEnd()
+    {
+        if(!IsServer) return;
+        StopTaskTimer();
+        SetResourceVisualsClientRpc(false, clientRpcParams);
+
     }
 
     private void OnDisable()

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +18,9 @@ public class GameStartManager : NetworkBehaviour
     [SerializeField] private RectTransform lobbyCanvas;
     [SerializeField] private GameObject CatcherPowerSource;
     [SerializeField] private float TimePerRound = 120f;
+
+    public static event Action OnRoundEnded;
+    public static event Action OnRoundEndedClientSignal;
 
     Coroutine roundTimerCoroutine;
 
@@ -39,7 +43,7 @@ public class GameStartManager : NetworkBehaviour
             var connectedClientIds = new List<ulong>(NetworkManager.Singleton.ConnectedClientsIds);
             if (connectedClientIds.Count == 0) return;
 
-            ulong catcherClientId = connectedClientIds[Random.Range(0, connectedClientIds.Count)];
+            ulong catcherClientId = connectedClientIds[UnityEngine.Random.Range(0, connectedClientIds.Count)];
 
             if (NetworkManager.Singleton.ConnectedClients.TryGetValue(catcherClientId, out var client))
             {
@@ -97,7 +101,7 @@ public class GameStartManager : NetworkBehaviour
                 sw.thisSwitcher.Eliminate();
 
             // Stop any running task timer and hide its UI on the owning client
-            sw.StopTaskTimer();
+             sw.StopTaskTimer();
 
             // Reset in-transit resource flag (server-side field)
             sw.hasNecessaryResource = false;
@@ -158,7 +162,7 @@ public class GameStartManager : NetworkBehaviour
             StopCoroutine(roundTimerCoroutine);
             roundTimerCoroutine = null;
         }
-
+        OnRoundEnded?.Invoke();
         RoutineAfterRoundEndClientRpc();
     }
 
@@ -189,5 +193,6 @@ public class GameStartManager : NetworkBehaviour
         boundariesBeforeGameStart.SetActive(true);
         gameStartCanvas.localScale = (Vector3.zero);
         lobbyCanvas.localScale = (Vector3.one);
+        OnRoundEndedClientSignal?.Invoke();
     }
 }

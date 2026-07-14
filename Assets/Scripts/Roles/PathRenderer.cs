@@ -22,8 +22,8 @@ public class PathRenderer : MonoBehaviour
     [SerializeField] float moveThreshold = 0.5f;        // Min player movement to trigger recalc
     [SerializeField] int maxPoolSize = 50;              // Cap on pooled arrow objects
 
-    [SerializeField] Slider timeRemainingSlider;
-    [SerializeField] GameObject taskIndicaatorVFX;
+    //[SerializeField] Slider timeRemainingSlider;
+    //[SerializeField] GameObject taskIndicaatorVFX;
     float totalTime = new float();
 
     NavMeshPath path;
@@ -56,28 +56,28 @@ public class PathRenderer : MonoBehaviour
     {
         path = new NavMeshPath();
         totalTime = switcherScript.GetTaskTimeLimit();
-        switcherScript.isCompletingATask.OnValueChanged += HandleTimeRemainingSlider;
+       // switcherScript.isCompletingATask.OnValueChanged += HandleTimeRemainingSlider;
     }
 
-    private void HandleTimeRemainingSlider(bool previousValue, bool newValue)
-    {   
-        Debug.Log($"HandleTimeRemainingSlider called with newValue: {newValue}");
+    //private void HandleTimeRemainingSlider(bool previousValue, bool newValue)
+    //{   
+    //    Debug.Log($"HandleTimeRemainingSlider called with newValue: {newValue}");
 
-        if (newValue)
-        {   
-            Debug.Log($"Activating time remaining slider with totalTime: {totalTime}");
-            timeRemainingSlider.value = 0;
-            timeRemainingSlider.gameObject.SetActive(true);
-            taskIndicaatorVFX.SetActive(true);
-            timeRemainingSlider.DOValue(1f,totalTime).SetEase(Ease.Linear).OnComplete(() => timeRemainingSlider.gameObject.SetActive(false));
+    //    if (newValue)
+    //    {   
+    //        Debug.Log($"Activating time remaining slider with totalTime: {totalTime}");
+    //        timeRemainingSlider.value = 0;
+    //        timeRemainingSlider.gameObject.SetActive(true);
+    //        taskIndicaatorVFX.SetActive(true);
+    //        timeRemainingSlider.DOValue(1f,totalTime).SetEase(Ease.Linear).OnComplete(() => timeRemainingSlider.gameObject.SetActive(false));
 
-        }
-        else
-        {
-            timeRemainingSlider.gameObject.SetActive(false);    
-            taskIndicaatorVFX.SetActive(false);
-        }
-    }
+    //    }
+    //    else
+    //    {
+    //        timeRemainingSlider.gameObject.SetActive(false);    
+    //        taskIndicaatorVFX.SetActive(false);
+    //    }
+    //}
 
     void Update()
     {

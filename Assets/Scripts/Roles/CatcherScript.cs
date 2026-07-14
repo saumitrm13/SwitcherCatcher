@@ -77,6 +77,7 @@ public class CatcherScript : NetworkBehaviour
         {
             animator = GetComponent<Animator>();
         }
+        
     }
 
     private void OnTriggerEnter(Collider other)

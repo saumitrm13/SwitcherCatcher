@@ -54,20 +54,7 @@ public class DangerVisuals : MonoBehaviour
         InitializePool();
         _initial_LP_For_TM_Anchor = anchorForThrowableMagic.transform.localPosition;
         explosionVFX = GameObject.Find("PoleTopExplosion").GetComponent<ParticleSystem>(); 
-    }
-
-    void Update()
-    {
-        //if (_isPoolActive)
-        //{
-        //    _spawnTimer += Time.deltaTime;
-
-        //    if (_spawnTimer >= 1f / spawnRate)
-        //    {
-        //        _spawnTimer = 0f;
-        //        LaunchFromPool();
-        //    }
-        //}
+        GameStartManager.OnRoundEndedClientSignal += ResetDangerVisuals;
     }
 
     // ── Pool Lifecycle ───────────────────────────────────────────────────────
@@ -233,7 +220,17 @@ public class DangerVisuals : MonoBehaviour
         _shakeController.TriggerShake();
     }
 
+    void ResetDangerVisuals()
+    {
+        StartCoroutine(ResetDangerVisualsCoroutine());  
+    }
     
-
+    IEnumerator ResetDangerVisualsCoroutine()
+    {   
+        miniCatcherOnTopOfTheTower.SetActive(false);
+        if(_characterFLCam!=null && _originalTargetTransformForCharacterFLCam!=null)
+            _characterFLCam.Target.TrackingTarget = _originalTargetTransformForCharacterFLCam;
+        yield return null;
+    }
 
 }

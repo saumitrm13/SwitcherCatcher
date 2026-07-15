@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections;
 using Unity.VisualScripting;
 using System.Linq;
+using Unity.Networking.Transport.Error;
 public class SwitcherScript : NetworkBehaviour
 {
     List<PoleScript> Poles;
@@ -19,6 +20,7 @@ public class SwitcherScript : NetworkBehaviour
     public Switcher thisSwitcher {  get; set; }
     internal bool hasNecessaryResource = false;
     public static event Action OnSwitcherPoleAssigned;
+    public static event Action OnSwitcherPoleAssignedClientSignal;
     public static event Action OnPoleOwnershipChanged;
     public NetworkVariable<bool> isEligibleToStealNet =
     new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server); 
@@ -227,7 +229,7 @@ public class SwitcherScript : NetworkBehaviour
         if (assignPole) {
            
             
-            OnSwitcherPoleAssigned?.Invoke();
+            OnSwitcherPoleAssignedClientSignal?.Invoke();
             StartCoroutine(waitAndAssignTargetPole());
         }
     }

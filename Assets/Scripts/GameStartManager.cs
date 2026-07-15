@@ -98,7 +98,7 @@ public class GameStartManager : NetworkBehaviour
 
             // Clear the local Switcher data object (owned pole, target pole)
             if (sw.thisSwitcher != null)
-                sw.thisSwitcher.Eliminate();
+                sw.thisSwitcher.ResetForNewRound();
 
             // Stop any running task timer and hide its UI on the owning client
              sw.StopTaskTimer();
@@ -107,7 +107,7 @@ public class GameStartManager : NetworkBehaviour
             sw.hasNecessaryResource = false;
         }
         Debug.Log($"[GameStartManager] Reset {allSwitchers.Length} switcher states.");
-
+        
         // ── 3. Teleport every player NetworkObject back to the origin ──────────
         foreach (var kvp in NetworkManager.Singleton.ConnectedClients)
         {
@@ -150,6 +150,7 @@ public class GameStartManager : NetworkBehaviour
     {
         yield return new WaitForSeconds(TimePerRound);
         roundTimerCoroutine = null;
+
         RoutineAfterRoundEnd();
     }
 
@@ -162,8 +163,14 @@ public class GameStartManager : NetworkBehaviour
             StopCoroutine(roundTimerCoroutine);
             roundTimerCoroutine = null;
         }
+        
         OnRoundEnded?.Invoke();
         RoutineAfterRoundEndClientRpc();
+        var allSwitchers = FindObjectsByType<SwitcherScript>(FindObjectsSortMode.None);
+        foreach (var sw in allSwitchers)
+        {
+            sw.isInSafeZone.Value = true;
+        }
     }
 
     [ClientRpc]
@@ -183,6 +190,19 @@ public class GameStartManager : NetworkBehaviour
         gameStartCanvas.localScale = (Vector3.one);
         lobbyCanvas.localScale = (Vector3.zero);
         DisconnectManager.MarkGameStarted();
+        if (SwitcherScript.localOwnerInstance != null)
+        {   
+            var movementController = SwitcherScript.localOwnerInstance.gameObject.GetComponent<AnimationAndMovementControllerNetwork>();
+            movementController.enabled = true;
+            
+            if (SwitcherScript.localOwnerInstance.thisSwitcher.IsDead()) {
+                movementController.RevivePlayerMovements();
+            }
+        }
+        else
+        {
+            CatcherScript.localOwnerInstance.GetComponent<AnimationAndMovementControllerNetwork>().enabled = true;
+        }
     }
 
     [ClientRpc]
@@ -194,5 +214,14 @@ public class GameStartManager : NetworkBehaviour
         gameStartCanvas.localScale = (Vector3.zero);
         lobbyCanvas.localScale = (Vector3.one);
         OnRoundEndedClientSignal?.Invoke();
+        if (SwitcherScript.localOwnerInstance != null)
+        {
+            SwitcherScript.localOwnerInstance.gameObject.GetComponent<AnimationAndMovementControllerNetwork>().enabled = false;
+
+        }
+        else
+        {
+            CatcherScript.localOwnerInstance.GetComponent<AnimationAndMovementControllerNetwork>().enabled = false;
+        }
     }
 }

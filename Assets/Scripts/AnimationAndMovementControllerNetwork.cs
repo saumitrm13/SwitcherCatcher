@@ -124,6 +124,17 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
             Debug.LogWarning("[AnimationController] Netcode_Functions not spawned yet when registering name");
         }
     }
+
+    public void RevivePlayerMovements()
+    {
+        StartCoroutine(RevivePlayerMovementsCoroutine());
+    }
+    IEnumerator RevivePlayerMovementsCoroutine()
+    {
+        animator.SetTrigger("Revive");
+        yield return new WaitForSeconds(1.0f);
+        animator.ResetTrigger("Revive");
+    }
     private void onRun(InputAction.CallbackContext context)
     {
         isRunPressed = context.ReadValueAsButton();

@@ -35,7 +35,7 @@ public class CatcherScript : NetworkBehaviour
     Coroutine powerDrainCoroutine;
     Coroutine powerRechargeCoroutine;
     List<GameObject> spawnedPrefabs = new List<GameObject>();
-
+    public static GameObject localOwnerInstance;
 
     private bool transitionig = false;
 
@@ -76,6 +76,7 @@ public class CatcherScript : NetworkBehaviour
         if (IsOwner)
         {
             animator = GetComponent<Animator>();
+            localOwnerInstance = gameObject;
         }
         
     }
@@ -175,6 +176,7 @@ public class CatcherScript : NetworkBehaviour
                 TargetClientIds = new ulong[] { caughtClientId }
             }
         };
+        Debug.Log("Killing a switcher");
         PlayDeathAnimationClientRpc(clientRpcParams);
         CatcherRoutineAfterCatchingSwitcherClientRpc();
     }

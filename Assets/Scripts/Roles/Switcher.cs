@@ -98,4 +98,12 @@ public class Switcher : Role
     {
         return isDead;
     }
+    public void ResetForNewRound()
+    {
+        OwnedPole = null;
+        TargetPole = null;
+        currentOccupiedPole = null;
+        RoleType = RoleType.Switcher;   // restore role instead of None
+        isDead = false;                 // explicitly revive
+    }
 }

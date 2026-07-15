@@ -39,7 +39,7 @@ public class SwitcherRquestHandler : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         SwitcherScript.OnSwitcherPoleAssigned += AssignThisPole;
-
+        SwitcherScript.OnSwitcherPoleAssignedClientSignal += ClientRoutineAfterOwningAPole;
         debugText = GameObject.Find("DebugText2").GetComponent<TextMeshProUGUI>();
         thisClientRpcParams = new ClientRpcParams
         {
@@ -53,6 +53,8 @@ public class SwitcherRquestHandler : NetworkBehaviour
             LocalOwnerInstance = this;
         }
     }
+
+
     public override void OnNetworkDespawn()
     {
         if (IsOwner && LocalOwnerInstance == this)
@@ -91,17 +93,23 @@ public class SwitcherRquestHandler : NetworkBehaviour
             }
         }
 
-        switcherCanvas = GameObject.Find("SwitcherCanvasPanel");
+        
+       
+    }
+
+    void ClientRoutineAfterOwningAPole()
+    {
         if (IsOwner)
         {
+            switcherCanvas = GameObject.Find("SwitcherCanvasPanel");
             switcherCanvas.SetActive(true);
             switcherUIFunctions = switcherCanvas.GetComponent<SwitcherUIScript>();
             switcherUIFunctions.requestHandler = this;
             switcherCanvasUIEffects = switcherCanvas.GetComponent<UIEffects>();
             switcherCanvas.GetComponent<RectTransform>().localScale = Vector3.one;
-            if(DestroyedPoles.Count == 0)
+            if (DestroyedPoles.Count == 0)
             {
-                  debugText.text = $"No destroyed poles at the moment";
+                debugText.text = $"No destroyed poles at the moment";
                 Debug.Log($"No destroyed poles at the moment");
             }
             Debug.Log(Equals(switcherUIFunctions, null) ? "switcherUIFunctions is null" : "switcherUIFunctions is not null");
@@ -118,8 +126,6 @@ public class SwitcherRquestHandler : NetworkBehaviour
             }
         }
     }
-
-
     public void UpdatePoleType(PoleType newPoleType)
     {
         thisPoleType = newPoleType;

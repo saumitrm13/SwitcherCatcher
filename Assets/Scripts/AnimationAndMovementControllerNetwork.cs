@@ -130,10 +130,14 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
         StartCoroutine(RevivePlayerMovementsCoroutine());
     }
     IEnumerator RevivePlayerMovementsCoroutine()
-    {
-        animator.SetTrigger("Revive");
+    {   
+        //animator.ResetTrigger("Die");
+        //animator.SetTrigger("Revive");
+        animator.Rebind();
+        animator.Update(0f);
+        animator.Update(0f);
         yield return new WaitForSeconds(1.0f);
-        animator.ResetTrigger("Revive");
+       // animator.ResetTrigger("Revive");
     }
     private void onRun(InputAction.CallbackContext context)
     {

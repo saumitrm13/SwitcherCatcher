@@ -10,7 +10,7 @@ public class PlayerVisuals : NetworkBehaviour
     [SerializeField] private Avatar catcherAvatar;
     [SerializeField] private Vector3 catcherColliderCentre = new Vector3(0, 0.8f, 0.91f);
     [SerializeField] private Vector3 catcherColliderSize = new Vector3(1, 1.84f, 1.67f);
-    [SerializeField] private GameObject[] switcherHitsParticleSystems;
+    [SerializeField] private ParticleSystem[] switcherHitsParticleSystems;
 
 
 
@@ -73,9 +73,9 @@ public class PlayerVisuals : NetworkBehaviour
 
     public void ActivateSwitcherHits()
     {
-        foreach (GameObject system in switcherHitsParticleSystems)
+        foreach (ParticleSystem system in switcherHitsParticleSystems)
         {
-            system.SetActive(true);
+            system.Play();
 
         }
 

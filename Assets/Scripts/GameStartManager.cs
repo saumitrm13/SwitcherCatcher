@@ -18,10 +18,11 @@ public class GameStartManager : NetworkBehaviour
     [SerializeField] private RectTransform lobbyCanvas;
     [SerializeField] private GameObject CatcherPowerSource;
     [SerializeField] private float TimePerRound = 120f;
-
+    [SerializeField] PoleExplosionEffect[] poles;
+  
     public static event Action OnRoundEnded;
     public static event Action OnRoundEndedClientSignal;
-
+    
     Coroutine roundTimerCoroutine;
 
     // Populated externally when players connect (Auth ID → Netcode Client ID)
@@ -105,6 +106,9 @@ public class GameStartManager : NetworkBehaviour
 
             // Reset in-transit resource flag (server-side field)
             sw.hasNecessaryResource = false;
+
+            //Reset available poles for each switcher
+            sw.GetAllPoles();   
         }
         Debug.Log($"[GameStartManager] Reset {allSwitchers.Length} switcher states.");
         
@@ -195,9 +199,10 @@ public class GameStartManager : NetworkBehaviour
             var movementController = SwitcherScript.localOwnerInstance.gameObject.GetComponent<AnimationAndMovementControllerNetwork>();
             movementController.enabled = true;
             
-            if (SwitcherScript.localOwnerInstance.thisSwitcher.IsDead()) {
-                movementController.RevivePlayerMovements();
-            }
+           
+          movementController.RevivePlayerMovements();
+          debugText.text = "[GameStartManager] Reviving dead switcher for new round.";
+            
         }
         else
         {
@@ -222,6 +227,11 @@ public class GameStartManager : NetworkBehaviour
         else
         {
             CatcherScript.localOwnerInstance.GetComponent<AnimationAndMovementControllerNetwork>().enabled = false;
+        }
+
+        foreach(PoleExplosionEffect pole in poles)
+        {
+            pole.ResetPole();
         }
     }
 }

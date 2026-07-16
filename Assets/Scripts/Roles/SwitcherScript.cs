@@ -58,7 +58,7 @@ public class SwitcherScript : NetworkBehaviour
         Debug.Log("Switcher assigned");
         thisSwitcher = new Switcher(OwnerClientId,this);
         
-        Poles = new List<PoleScript>(FindObjectsByType<PoleScript>(FindObjectsSortMode.None));
+        GetAllPoles();
         debugText = GameObject.Find("DebugText").GetComponent<TextMeshProUGUI>();
         ownedPoleText = GameObject.Find("DebugText3").GetComponent<TextMeshProUGUI>();
         triggerCaseText = GameObject.Find("TriggerCaseText").GetComponent<TextMeshProUGUI>();
@@ -122,6 +122,12 @@ public class SwitcherScript : NetworkBehaviour
         }
     }
 
+    public void GetAllPoles()
+    {   
+
+        Poles = new List<PoleScript>(FindObjectsByType<PoleScript>(FindObjectsSortMode.None));
+        Debug.Log($"[SwitcherScript] Found {Poles.Count} poles in the scene.");
+    }
     private void OnTriggerEnter(Collider other)
     {
         if (!isActiveAndEnabled)
@@ -276,7 +282,12 @@ public class SwitcherScript : NetworkBehaviour
         }
         Pole targetPole = Poles[UnityEngine.Random.Range(0, Poles.Count)].thisPole;
 
-       
+        if(Poles.Count == 1 && targetPole.Type == thisSwitcher.getOwnedPoleType())
+        {
+            string notification = "No poles available to assign as target pole. Please wait for the next round.";
+            NotifyClientAboutThePoleClientRpc(notification, false, clientRpcParams);
+            return;
+        }
         while (targetPole.Type == thisSwitcher.getOwnedPoleType())
         {
             targetPole = Poles[UnityEngine.Random.Range(0, Poles.Count)].thisPole;

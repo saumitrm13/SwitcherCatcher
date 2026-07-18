@@ -90,6 +90,8 @@ public class SwitcherScript : NetworkBehaviour
         if(!IsServer) return;
         StopTaskTimer();
         SetResourceVisualsClientRpc(false, clientRpcParams);
+        currentPole = null;
+        currentColliderTransform = null;    
 
     }
 

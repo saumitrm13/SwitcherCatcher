@@ -117,7 +117,12 @@ public class GameStartManager : NetworkBehaviour
         {
             NetworkObject playerObj = kvp.Value.PlayerObject;
             if (playerObj != null)
-                playerObj.transform.position = new Vector3(0, 0.4580349f,0);
+            {
+                var cc = playerObj.GetComponent<CharacterController>();
+                if (cc != null) cc.enabled = false;      // disable before moving, so CC doesn't fight the write
+                playerObj.transform.position = new Vector3(0, 0.4580349f, 0);
+                if (cc != null) cc.enabled = true;       // re-enable after
+            }
         }
         Debug.Log("[GameStartManager] Teleported all players to Vector3.zero.");
 
@@ -204,7 +209,7 @@ public class GameStartManager : NetworkBehaviour
           debugText.text = "[GameStartManager] Reviving dead switcher for new round.";
             
         }
-        else
+        else if(CatcherScript.localOwnerInstance != null)   
         {
             CatcherScript.localOwnerInstance.GetComponent<AnimationAndMovementControllerNetwork>().enabled = true;
         }

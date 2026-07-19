@@ -40,7 +40,7 @@ public class DisconnectManager : NetworkBehaviour
     [SerializeField] private GameObject gameSessionRoot;
     [Tooltip("Reference to the LobbyCanvasFunction for panel switching, optional convenience.")]
     [SerializeField] private LobbyCanvasFunction lobbyCanvasFunction;
-
+    [SerializeField] private RectTransform gameCanvasPanel;
     // Tracks whether the game has actually started, so pre-game lobby disconnects
     // (still in the lobby, nobody spawned as a gameplay player yet) don't trigger
     // this heavier mid-game cleanup path. Static + set on the watchdog so it
@@ -296,9 +296,9 @@ public class DisconnectManager : NetworkBehaviour
 
     private void RunGameStoppedCleanupInstance()
     {
-        if (gameSessionRoot != null)
+        if (gameCanvasPanel != null)
         {
-            gameSessionRoot.SetActive(false);
+            gameCanvasPanel.localScale = Vector3.zero;  
         }
 
         // This project shows/hides the lobby canvas via localScale (see

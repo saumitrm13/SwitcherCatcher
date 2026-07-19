@@ -33,20 +33,24 @@ public class PlayerInfoUI : MonoBehaviour
 
     void TryResolveClientId()
     {
-        if (_resolvedClientId.HasValue) return;
         if (GameSessionData.Instance == null) return;
 
         foreach (var kvp in GameSessionData.Instance.ClientIdToLobbyPlayerId)
         {
             if (kvp.Value == _lobbyPlayerId)
             {
+                if (_resolvedClientId.HasValue && _resolvedClientId.Value != kvp.Key)
+                {
+                    // Client ID changed (rejoin) — unsubscribe old, resubscribe new
+                    if (ScoreManager.Instance != null)
+                        ScoreManager.Instance.PlayerScores.OnListChanged -= OnScoresChanged;
+                }
                 _resolvedClientId = kvp.Key;
                 SubscribeToScore();
                 break;
             }
         }
     }
-
     void SubscribeToScore()
     {
         if (ScoreManager.Instance == null || !ScoreManager.Instance.IsSpawned)

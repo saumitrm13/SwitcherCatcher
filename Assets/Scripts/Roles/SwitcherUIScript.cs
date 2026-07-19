@@ -85,6 +85,11 @@ public class SwitcherUIScript : MonoBehaviour
     }
     public void OnPoleBtnClicked(string pole)
     {
+        if (requestHandler == null)
+        {
+            debugText.text = "Not ready yet — please wait.";
+            return;
+        }
         if (requestHandler.IsAllied())
         {
             debugText.text = "You are already allied!";

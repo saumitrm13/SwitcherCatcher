@@ -57,10 +57,19 @@ public class SwitcherRquestHandler : NetworkBehaviour
 
     public override void OnNetworkDespawn()
     {
-        if (IsOwner && LocalOwnerInstance == this)
+        if (LocalOwnerInstance == this)
         {
             LocalOwnerInstance = null;
         }
+
+        // Clear the reverse pointer on the (persistent) UI canvas so it doesn't
+        // keep referencing this destroyed handler after the owner disconnects.
+        if (switcherUIFunctions != null && switcherUIFunctions.requestHandler == this)
+        {
+            switcherUIFunctions.requestHandler = null;
+        }
+
+        SwitcherScript.OnSwitcherPoleAssigned -= AssignThisPole;
     }
     private void AssignThisPole()
     {
@@ -620,8 +629,7 @@ public class SwitcherRquestHandler : NetworkBehaviour
     void ClearSentRequestsForAllianceClientRpc(PoleType poleA, PoleType poleB)
     {
         var localHandler = SwitcherRquestHandler.LocalOwnerInstance;
-
-        if (localHandler?.switcherUIFunctions != null)
+        if (localHandler != null && localHandler.switcherUIFunctions != null)
         {
             localHandler.switcherUIFunctions.RemovePoleFromSentList(poleA);
             localHandler.switcherUIFunctions.RemovePoleFromSentList(poleB);
@@ -631,22 +639,22 @@ public class SwitcherRquestHandler : NetworkBehaviour
     [ClientRpc]
     public void ClearSentRequestsAfterStealClientRpc(ClientRpcParams clientRpcParams = default)
     {
-        if (SwitcherRquestHandler.LocalOwnerInstance?.switcherUIFunctions != null)
+        var handler = SwitcherRquestHandler.LocalOwnerInstance;
+        if (handler != null && handler.switcherUIFunctions != null)
         {
-            SwitcherRquestHandler.LocalOwnerInstance
-                .switcherUIFunctions
-                .ClearSentRequestPoleTypesList();
+            handler.switcherUIFunctions.ClearSentRequestPoleTypesList();
         }
     }
     [ClientRpc]
-    void DestroySendRequestBtnForAPoleTypeClientRpc(PoleType poletype,ClientRpcParams clientRpcParams = default)
+    void DestroySendRequestBtnForAPoleTypeClientRpc(PoleType poletype, ClientRpcParams clientRpcParams = default)
     {
-        if (SwitcherRquestHandler.LocalOwnerInstance?.switcherUIFunctions != null)
+        var handler = SwitcherRquestHandler.LocalOwnerInstance;
+        if (handler != null && handler.switcherUIFunctions != null)
         {
-            SwitcherRquestHandler.LocalOwnerInstance.switcherUIFunctions.DestroySendRequestBtnForPoleType(poletype);
+            handler.switcherUIFunctions.DestroySendRequestBtnForPoleType(poletype);
         }
         debugText.text = $"The {poletype.ToString()} pole has been destroyed. You can no longer send requests to its owner.";
-        DestroyedPoles.Add(poletype);
+        DestroyedPoles.Add(thisPoleType);
         return;
     }
     public void RequestHandlerRoutineAfterPoleDestroy()

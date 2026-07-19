@@ -159,7 +159,7 @@ public class GameStartManager : NetworkBehaviour
     {
         yield return new WaitForSeconds(TimePerRound);
         roundTimerCoroutine = null;
-
+        Debug.Log($"[GameStartManager] Round timer expired after {TimePerRound} seconds.");
         RoutineAfterRoundEnd();
     }
 

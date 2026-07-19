@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class GameSessionData : MonoBehaviour
@@ -46,6 +47,15 @@ public class GameSessionData : MonoBehaviour
 
     public void RegisterLobbyPlayerId(ulong clientId, string lobbyPlayerId)
     {
+        // Remove stale entries for the same lobby player (e.g. after a rejoin,
+        // where this player gets a new Netcode clientId).
+        var staleKeys = ClientIdToLobbyPlayerId
+            .Where(kvp => kvp.Value == lobbyPlayerId && kvp.Key != clientId)
+            .Select(kvp => kvp.Key)
+            .ToList();
+        foreach (var staleKey in staleKeys)
+            ClientIdToLobbyPlayerId.Remove(staleKey);
+
         ClientIdToLobbyPlayerId[clientId] = lobbyPlayerId;
         OnClientIdMappingUpdated?.Invoke();
     }

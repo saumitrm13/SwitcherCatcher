@@ -113,15 +113,15 @@ public class SwitcherScript : NetworkBehaviour
     
     void Update()
     {
-        if (IsOwner)
-        {
-            if (isEligibleToStealNet.Value && Input.GetKeyDown(KeyCode.V) && !isStealingNow)
-            {   
+        //if (IsOwner)
+        //{
+        //    if (isEligibleToStealNet.Value && Input.GetKeyDown(KeyCode.V) && !isStealingNow)
+        //    {   
 
-                isStealingNow = true;
-                StartCoroutine(StartStealing());
-            }
-        }
+        //        isStealingNow = true;
+        //        StartCoroutine(StartStealing());
+        //    }
+        //}
     }
 
     public void GetAllPoles()
@@ -404,7 +404,13 @@ public class SwitcherScript : NetworkBehaviour
         
     }
 
-   
+    public override void OnNetworkDespawn()
+    {
+        GameStartManager.OnRoundEnded -= SwitcherScriptRoutineAfterRoundEnd;
+
+        if (IsServer)
+            CatcherScript.cursedPoleType.OnValueChanged -= OnCursedPoleChanged;
+    }
 
     void HandleStrangerEntryInThePole()
     {
@@ -461,7 +467,7 @@ public class SwitcherScript : NetworkBehaviour
     [ClientRpc]
     void ChangeClientUIClientRpc(PoleType poleType ,ClientRpcParams clientRpcParams = default)
     {
-        ownedPoleText.text = $"Your pole : {poleType.ToString()}";
+        ownedPoleText.text = $"{poleType.ToString()}";
     }
 
    
@@ -584,18 +590,16 @@ public class SwitcherScript : NetworkBehaviour
 
     [ClientRpc]
     void UpdateTimerClientRpc(int secondsRemaining, ClientRpcParams clientRpcParams = default)
-    {   
-        
+    {
         var handler = SwitcherRquestHandler.LocalOwnerInstance;
-        if (handler?.switcherUIFunctions != null)
+        if (handler != null && handler.switcherUIFunctions != null)
             handler.switcherUIFunctions.ShowTimeRemaining(secondsRemaining);
     }
-
     [ClientRpc]
     void HideTimerClientRpc(ClientRpcParams clientRpcParams = default)
     {
         var handler = SwitcherRquestHandler.LocalOwnerInstance;
-        if (handler?.switcherUIFunctions != null)
+        if (handler != null && handler.switcherUIFunctions != null)
             handler.switcherUIFunctions.HideTimer();
     }
     IEnumerator StartStealing()

@@ -15,6 +15,7 @@ public class SwitcherScript : NetworkBehaviour
     TextMeshProUGUI debugText;
     TextMeshProUGUI ownedPoleText;
     TextMeshProUGUI triggerCaseText;
+    public TextMeshProUGUI targetPoleText;
     public static SwitcherScript localOwnerInstance;
     public NetworkVariable<bool> isInSafeZone = new NetworkVariable<bool>(true, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public Switcher thisSwitcher { get; set; }
@@ -62,7 +63,7 @@ public class SwitcherScript : NetworkBehaviour
         debugText = GameObject.Find("DebugText").GetComponent<TextMeshProUGUI>();
         ownedPoleText = GameObject.Find("DebugText3").GetComponent<TextMeshProUGUI>();
         triggerCaseText = GameObject.Find("TriggerCaseText").GetComponent<TextMeshProUGUI>();
-
+        targetPoleText = GameObject.Find("TargetPoleText").GetComponent<TextMeshProUGUI>();
         clientRpcParams = new ClientRpcParams
         {
             Send = new ClientRpcSendParams

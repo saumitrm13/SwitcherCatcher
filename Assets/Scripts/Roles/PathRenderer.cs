@@ -93,6 +93,7 @@ public class PathRenderer : MonoBehaviour
         if (!ownsAPole || !hasTarget)
         {
             ReleaseAllArrows();
+            switcherScript.targetPoleText.text = "No Pole !";
             return;
         }
 
@@ -102,6 +103,7 @@ public class PathRenderer : MonoBehaviour
         if (targetChanged)
         {
             lastKnownTargetType = targetType;
+            switcherScript.targetPoleText.text = targetType.ToString();
             GameObject poleObj = GameObject.Find(targetType.ToString() + "Pole");
             cachedTargetPosition = poleObj != null ? poleObj.transform.position : Vector3.zero;
         }

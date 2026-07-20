@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -165,6 +165,7 @@ public class LobbyCanvasFunction : MonoBehaviour
             //if (GameSessionObjects != null)
             //    GameSessionObjects.SetActive(true);
 
+            await LobbyFeatures.EnsureNetworkManagerShutdownComplete();
             NetworkManager.Singleton.StartHost();
             boundariesBeforeGameStart.SetActive(true);
             ActivatePanel(currentLobbyInfoPanel);
@@ -246,6 +247,7 @@ public class LobbyCanvasFunction : MonoBehaviour
             //if (GameSessionObjects != null)
             //    GameSessionObjects.SetActive(true);
 
+            await LobbyFeatures.EnsureNetworkManagerShutdownComplete();
             NetworkManager.Singleton.StartHost();
             boundariesBeforeGameStart.SetActive(true);
             ActivatePanel(currentLobbyInfoPanel);
@@ -302,6 +304,7 @@ public class LobbyCanvasFunction : MonoBehaviour
 
                 // Start as client
                 Debug.Log("[Client] Starting NetworkManager as client...");
+                await LobbyFeatures.EnsureNetworkManagerShutdownComplete();
                 NetworkManager.Singleton.StartClient();
                 boundariesBeforeGameStart.SetActive(true);
             }
@@ -341,7 +344,7 @@ public class LobbyCanvasFunction : MonoBehaviour
             await LobbyService.Instance.RemovePlayerAsync(LobbyFeatures.GetCurrentLobby().Id, playerId);
             LobbyFeatures.SetCurrentLobby(null);
             currentLobby = null;
-            if (NetworkManager.Singleton != null || NetworkManager.Singleton.IsListening)
+            if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
             {
                 NetworkManager.Singleton.Shutdown();
             }

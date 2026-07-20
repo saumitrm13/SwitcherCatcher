@@ -1,5 +1,6 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TMPro;
 using Unity.Netcode;
 using Unity.Services.Authentication;
@@ -81,14 +82,31 @@ public class LobbyFeatures : MonoBehaviour
         Debug.Log($"[LobbyFeatures] Subscribed to lobby events for {currentLobby.Id}");
     }
 
-    public static async System.Threading.Tasks.Task UnsubscribeFromCurrentLobbyEvents()
+    public static async Task UnsubscribeFromCurrentLobbyEvents()
     {
-        if (!_isSubscribed || _lobbyEvents == null) return;
-
-        await _lobbyEvents.UnsubscribeAsync();
-        _lobbyEvents = null;
-        _lobbyEventCallbacks = null;
+        // Always reset the flag so a subsequent join can re-subscribe,
+        // even if the actual unsubscribe call below throws or was already done.
         _isSubscribed = false;
+
+        if (_lobbyEvents == null)
+        {
+            _lobbyEventCallbacks = null;
+            return;
+        }
+
+        try
+        {
+            await _lobbyEvents.UnsubscribeAsync();
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[LobbyFeatures] UnsubscribeAsync failed (non-fatal): {e.Message}");
+        }
+        finally
+        {
+            _lobbyEvents = null;
+            _lobbyEventCallbacks = null;
+        }
 
         Debug.Log("[LobbyFeatures] Unsubscribed from lobby events");
     }
@@ -115,6 +133,7 @@ public class LobbyFeatures : MonoBehaviour
             GameSessionData.Instance.IsRelayHost = false;
 
             await RelayManager.JoinRelay(relayJoinCode);
+            await EnsureNetworkManagerShutdownComplete();
             NetworkManager.Singleton.StartClient();
             // Scene loads automatically via NetworkManager scene sync
             return;
@@ -123,10 +142,10 @@ public class LobbyFeatures : MonoBehaviour
         FindAnyObjectByType<LobbyFeatures>()?.ShowLobbyInfo();
     }
 
-    private static void OnLobbyDeletedStatic()
+    private static async void OnLobbyDeletedStatic()
     {
         Debug.Log("[LobbyFeatures] Lobby deleted.");
-        _ = UnsubscribeFromCurrentLobbyEvents();
+        await UnsubscribeFromCurrentLobbyEvents();
         SetCurrentLobby(null);
         FindAnyObjectByType<LobbyFeatures>()?.HandleLobbyGone("Your lobby was deleted");
 
@@ -146,10 +165,10 @@ public class LobbyFeatures : MonoBehaviour
         Dictionary<int, Dictionary<string, ChangedOrRemovedLobbyValue<PlayerDataObject>>> _)
         => FindAnyObjectByType<LobbyFeatures>()?.RefreshPlayerList();
 
-    private static void OnKickedFromLobbyStatic()
+    private static async void OnKickedFromLobbyStatic()
     {
         Debug.Log("[LobbyFeatures] Kicked from lobby.");
-        _ = UnsubscribeFromCurrentLobbyEvents();
+        await UnsubscribeFromCurrentLobbyEvents();
         SetCurrentLobby(null);
         FindAnyObjectByType<LobbyFeatures>()?.HandleLobbyGone("Either your lobby was deleted or you were kicked out");
     }
@@ -167,7 +186,7 @@ public class LobbyFeatures : MonoBehaviour
     {
         StopHeartbeat();
         if (debugText != null) debugText.text = message;
-        if (NetworkManager.Singleton != null || NetworkManager.Singleton.IsListening)
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
         {
             NetworkManager.Singleton.Shutdown();
         }
@@ -326,9 +345,32 @@ public class LobbyFeatures : MonoBehaviour
         GameSessionData.Instance.CatcherPlayerId = catcherPlayerId;
         GameSessionData.Instance.IsRelayHost = true;
 
+        // Ensure any previous session's shutdown has fully completed
+        await EnsureNetworkManagerShutdownComplete();
+
         // Start host and load game scene
         NetworkManager.Singleton.StartHost();
         NetworkManager.Singleton.SceneManager.LoadScene("GameSessionScene",
             UnityEngine.SceneManagement.LoadSceneMode.Single);
+    }
+
+    // ─── Shutdown guard ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Waits until NetworkManager.Singleton has fully completed any in-progress
+    /// shutdown. Netcode's Shutdown() is not instant — transport teardown,
+    /// connection cleanup and object despawn can span multiple frames. Calling
+    /// StartClient()/StartHost() while ShutdownInProgress is true silently
+    /// fails to establish a connection.
+    /// </summary>
+    public static async Task EnsureNetworkManagerShutdownComplete()
+    {
+        if (NetworkManager.Singleton == null) return;
+
+        while (NetworkManager.Singleton != null && NetworkManager.Singleton.ShutdownInProgress)
+        {
+            Debug.Log("[LobbyFeatures] Waiting for NetworkManager shutdown to complete...");
+            await Task.Yield();
+        }
     }
 }

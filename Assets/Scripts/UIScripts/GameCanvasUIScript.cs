@@ -6,7 +6,7 @@ public class GameCanvasUIScript : MonoBehaviour
     [SerializeField] TextMeshProUGUI debugText;
     [SerializeField] TextMeshProUGUI debugText2;
     [SerializeField] TextMeshProUGUI debugText3;
-
+    [SerializeField] TextMeshProUGUI targetPoleText;
     [SerializeField] TextMeshProUGUI triggerCaseText;
 
     [SerializeField] RectTransform switcherUIPanelRect;
@@ -28,7 +28,8 @@ public class GameCanvasUIScript : MonoBehaviour
     {
         debugText.text = "";
         debugText2.text = "";
-        debugText3.text = "";   
+        debugText3.text = "No Pole!";   
+        targetPoleText.text = "No Pole!";
         triggerCaseText.text = "";
         switcherUIPanelRect.localScale = Vector3.zero;
 

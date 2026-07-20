@@ -29,9 +29,17 @@ public class Netcode_Functions : NetworkBehaviour
 
     public override void OnNetworkDespawn()
     {
-        if (!IsServer) return;
+        if (IsServer)
+            NetworkManager.Singleton.ConnectionApprovalCallback -= ApprovalCheck;
 
-        NetworkManager.Singleton.ConnectionApprovalCallback -= ApprovalCheck;
+        if (Instance == this)
+            Instance = null;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 
     // Approve all clients for connection

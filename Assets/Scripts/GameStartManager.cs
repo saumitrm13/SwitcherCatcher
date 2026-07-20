@@ -19,10 +19,11 @@ public class GameStartManager : NetworkBehaviour
     [SerializeField] private GameObject CatcherPowerSource;
     [SerializeField] private float TimePerRound = 120f;
     [SerializeField] PoleExplosionEffect[] poles;
-  
+
     public static event Action OnRoundEnded;
     public static event Action OnRoundEndedClientSignal;
-    
+    public static event Action OnNewRoundStarted;
+    public static event Action OnNewRoundStartedClientSignal;
     Coroutine roundTimerCoroutine;
 
     // Populated externally when players connect (Auth ID → Netcode Client ID)
@@ -33,7 +34,7 @@ public class GameStartManager : NetworkBehaviour
     {
         CatcherPowerSource.SetActive(true);
         if (!NetworkManager.Singleton.IsServer) return;
-
+        OnNewRoundStarted?.Invoke();
         // Increment before branching so RoundNumber == 1 on the very first call.
         GameSessionData.Instance.RoundNumber++;
         Debug.Log($"[GameStartManager] Starting round {GameSessionData.Instance.RoundNumber}.");
@@ -93,7 +94,7 @@ public class GameStartManager : NetworkBehaviour
         foreach (var sw in allSwitchers)
         {
             // Clear replicated NetworkVariables (automatically propagated to clients)
-            sw.ownedPoleType.Value  = PoleType.None;
+            sw.ownedPoleType.Value = PoleType.None;
             sw.targetPoleType.Value = PoleType.None;
             sw.isCompletingATask.Value = false;
 
@@ -102,16 +103,16 @@ public class GameStartManager : NetworkBehaviour
                 sw.thisSwitcher.ResetForNewRound();
 
             // Stop any running task timer and hide its UI on the owning client
-             sw.StopTaskTimer();
+            sw.StopTaskTimer();
 
             // Reset in-transit resource flag (server-side field)
             sw.hasNecessaryResource = false;
 
             //Reset available poles for each switcher
-            sw.GetAllPoles();   
+            sw.GetAllPoles();
         }
         Debug.Log($"[GameStartManager] Reset {allSwitchers.Length} switcher states.");
-        
+
         // ── 3. Teleport every player NetworkObject back to the origin ──────────
         foreach (var kvp in NetworkManager.Singleton.ConnectedClients)
         {
@@ -166,19 +167,20 @@ public class GameStartManager : NetworkBehaviour
     public void RoutineAfterRoundEnd()
     {
         if (!NetworkManager.Singleton.IsServer) return;
-
+        Debug.Log("Round has ended. Executing server-side cleanup and notifying clients.");
         if (roundTimerCoroutine != null)
         {
             StopCoroutine(roundTimerCoroutine);
             roundTimerCoroutine = null;
         }
-        
+
         OnRoundEnded?.Invoke();
         RoutineAfterRoundEndClientRpc();
         var allSwitchers = FindObjectsByType<SwitcherScript>(FindObjectsSortMode.None);
         foreach (var sw in allSwitchers)
         {
             sw.isInSafeZone.Value = true;
+
         }
     }
 
@@ -193,6 +195,7 @@ public class GameStartManager : NetworkBehaviour
     [ClientRpc]
     void StartGameForEveryClientClientRpc()
     {
+        OnNewRoundStartedClientSignal?.Invoke();
         GameSessionData.Instance.HasGameStartedYet = true;
         CatcherPowerSource.SetActive(true);
         boundariesBeforeGameStart.SetActive(false);
@@ -200,29 +203,32 @@ public class GameStartManager : NetworkBehaviour
         lobbyCanvas.localScale = (Vector3.zero);
         DisconnectManager.MarkGameStarted();
         if (SwitcherScript.localOwnerInstance != null)
-        {   
+        {
             var movementController = SwitcherScript.localOwnerInstance.gameObject.GetComponent<AnimationAndMovementControllerNetwork>();
             movementController.enabled = true;
-            
-           
-          movementController.RevivePlayerMovements();
-          debugText.text = "[GameStartManager] Reviving dead switcher for new round.";
-            
+
+
+            movementController.RevivePlayerMovements();
+            debugText.text = "[GameStartManager] Reviving dead switcher for new round.";
+
         }
-        else if(CatcherScript.localOwnerInstance != null)   
+        else if (CatcherScript.localOwnerInstance != null)
         {
             CatcherScript.localOwnerInstance.GetComponent<AnimationAndMovementControllerNetwork>().enabled = true;
         }
+
     }
 
     [ClientRpc]
     void RoutineAfterRoundEndClientRpc()
     {
+        Debug.Log("[GameStartManager] RoutineAfterRoundEndClientRpc() called on client.");
         GameSessionData.Instance.HasGameStartedYet = false;
         CatcherPowerSource.SetActive(false);
         boundariesBeforeGameStart.SetActive(true);
         gameStartCanvas.localScale = (Vector3.zero);
         lobbyCanvas.localScale = (Vector3.one);
+        Debug.Log("End round signal sent to clients.");
         OnRoundEndedClientSignal?.Invoke();
         if (SwitcherScript.localOwnerInstance != null)
         {
@@ -234,9 +240,6 @@ public class GameStartManager : NetworkBehaviour
             CatcherScript.localOwnerInstance.GetComponent<AnimationAndMovementControllerNetwork>().enabled = false;
         }
 
-        foreach(PoleExplosionEffect pole in poles)
-        {
-            pole.ResetPole();
-        }
+
     }
 }

@@ -17,13 +17,13 @@ public class SwitcherScript : NetworkBehaviour
     TextMeshProUGUI triggerCaseText;
     public static SwitcherScript localOwnerInstance;
     public NetworkVariable<bool> isInSafeZone = new NetworkVariable<bool>(true, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-    public Switcher thisSwitcher {  get; set; }
+    public Switcher thisSwitcher { get; set; }
     internal bool hasNecessaryResource = false;
     public static event Action OnSwitcherPoleAssigned;
     public static event Action OnSwitcherPoleAssignedClientSignal;
     public static event Action OnPoleOwnershipChanged;
     public NetworkVariable<bool> isEligibleToStealNet =
-    new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server); 
+    new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     bool serverSignalToSteal = true;
     bool isStealingNow = false;
 
@@ -38,12 +38,12 @@ public class SwitcherScript : NetworkBehaviour
     [SerializeField] ParticleSystem resourceGainVFX;
     [SerializeField] GameObject throwableMagic;
 
-    
+
     [Header("Task Timer")]
-    [SerializeField] float taskTimeLimit = 30f;   // seconds � tweak in Inspector
+    [SerializeField] float taskTimeLimit = 30f;   // seconds   tweak in Inspector
     [Header("Resources Visuals")]
     [SerializeField] GameObject resourceVisualsParent; // parent object that holds the resource visuals
-    
+
     Coroutine taskTimerCoroutine;
     public NetworkVariable<PoleType> ownedPoleType = new NetworkVariable<PoleType>(
         PoleType.None, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -54,15 +54,15 @@ public class SwitcherScript : NetworkBehaviour
     public NetworkVariable<bool> isCompletingATask = new NetworkVariable<bool>(
         false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public override void OnNetworkSpawn()
-    {   
+    {
         Debug.Log("Switcher assigned");
-        thisSwitcher = new Switcher(OwnerClientId,this);
-        
+        thisSwitcher = new Switcher(OwnerClientId, this);
+
         GetAllPoles();
         debugText = GameObject.Find("DebugText").GetComponent<TextMeshProUGUI>();
         ownedPoleText = GameObject.Find("DebugText3").GetComponent<TextMeshProUGUI>();
         triggerCaseText = GameObject.Find("TriggerCaseText").GetComponent<TextMeshProUGUI>();
-        GameStartManager.OnRoundEnded += SwitcherScriptRoutineAfterRoundEnd;
+
         clientRpcParams = new ClientRpcParams
         {
             Send = new ClientRpcSendParams
@@ -74,6 +74,7 @@ public class SwitcherScript : NetworkBehaviour
         if (IsServer)
         {
             CatcherScript.cursedPoleType.OnValueChanged += OnCursedPoleChanged;
+            GameStartManager.OnRoundEnded += SwitcherScriptRoutineAfterRoundEnd;
         }
         if (!IsOwner)
         {
@@ -87,11 +88,14 @@ public class SwitcherScript : NetworkBehaviour
 
     private void SwitcherScriptRoutineAfterRoundEnd()
     {
-        if(!IsServer) return;
+        if (!IsServer) return;
+        Debug.Log("[SwitcherScript] Round ended, resetting state");
         StopTaskTimer();
+        StopCoroutine(waitAndAssignTargetPole());
+        StopCoroutine(WaitAndAssignNextPole());
         SetResourceVisualsClientRpc(false, clientRpcParams);
         currentPole = null;
-        currentColliderTransform = null;    
+        currentColliderTransform = null;
 
     }
 
@@ -110,7 +114,7 @@ public class SwitcherScript : NetworkBehaviour
 
     }
 
-    
+
     void Update()
     {
         //if (IsOwner)
@@ -125,7 +129,7 @@ public class SwitcherScript : NetworkBehaviour
     }
 
     public void GetAllPoles()
-    {   
+    {
 
         Poles = new List<PoleScript>(FindObjectsByType<PoleScript>(FindObjectsSortMode.None));
         Debug.Log($"[SwitcherScript] Found {Poles.Count} poles in the scene.");
@@ -134,19 +138,20 @@ public class SwitcherScript : NetworkBehaviour
     {
         if (!isActiveAndEnabled)
             return;
-        
+
         if (!other.gameObject.CompareTag("Pole"))
         {
             return;
         }
         currentColliderTransform = other.gameObject.transform;
         if (!IsServer) { return; }
-        if (other.gameObject.CompareTag("Pole")) {
+        if (other.gameObject.CompareTag("Pole"))
+        {
             isInSafeZone.Value = true;
             Debug.Log("You are in safe zone");
             currentPole = other.gameObject.GetComponent<PoleScript>().thisPole;
             currentColliderTransform = other.gameObject.transform;
-            
+
             if (!thisSwitcher.OwnsAPole())
             {
                 triggerCaseText.text = $"Pole Entry Case : Doesn't own a pole";
@@ -161,11 +166,11 @@ public class SwitcherScript : NetworkBehaviour
                 {
                     triggerCaseText.text = $"Pole Entry Case : Owned pole with resources";
                     hasNecessaryResource = false;
-                    SetResourceVisualsClientRpc(false, clientRpcParams);    
+                    SetResourceVisualsClientRpc(false, clientRpcParams);
                     thisSwitcher.AssignTargetPole(null);
                     StopTaskTimer();
                     ScoreManager.Instance?.AddSwitcherSaveScore(OwnerClientId);
-                   
+
                     //NotifyClientAboutThePoleClientRpc($"Well done! You handled the situation", false, clientRpcParams);
                     RoutineAfterGettingResourcesToOwnedPoleClientRpc(clientRpcParams);
                     StartCoroutine(WaitAndAssignNextPole());
@@ -180,7 +185,8 @@ public class SwitcherScript : NetworkBehaviour
                 currentPole.Occupy();
                 PlaySuccessVFXClientRpc(clientRpcParams);
                 return;
-            }else if(thisSwitcher.getTargetPoleType() != currentPole.Type)
+            }
+            else if (thisSwitcher.getTargetPoleType() != currentPole.Type)
             {
                 InvalidPoleEntryRoutineClientRpc(clientRpcParams);
             }
@@ -189,7 +195,7 @@ public class SwitcherScript : NetworkBehaviour
                 HandleStrangerEntryInThePole();
                 return;
             }
-           
+
         }
     }
 
@@ -205,8 +211,8 @@ public class SwitcherScript : NetworkBehaviour
                     TargetClientIds = new ulong[] { OwnerClientId }
                 }
             };
-           
-           
+
+
             Pole exitedPole = other.gameObject.GetComponent<PoleScript>().thisPole;
             if (thisSwitcher.hasOccupiedAPole())
             {
@@ -234,9 +240,10 @@ public class SwitcherScript : NetworkBehaviour
     {
         Debug.Log(message);
         debugText.text = message;
-        if (assignPole) {
-           
-            
+        if (assignPole)
+        {
+
+
             OnSwitcherPoleAssignedClientSignal?.Invoke();
             StartCoroutine(waitAndAssignTargetPole());
         }
@@ -245,7 +252,7 @@ public class SwitcherScript : NetworkBehaviour
     void HandlePoleOwnerShip(Pole currentPole)
     {
         Debug.Log("Attempting to assign the pole");
-        
+
 
         if (currentPole.HasOwner())
         {
@@ -261,9 +268,9 @@ public class SwitcherScript : NetworkBehaviour
             ChangeClientUIClientRpc(currentPole.Type, clientRpcParams);
             UpdateStealEligibility();
             NotifyClientAboutThePoleClientRpc("Great!... You own a Pole", true, clientRpcParams);
-            
+
             PlaySuccessVFXClientRpc(clientRpcParams);
-            
+
         }
     }
 
@@ -274,17 +281,18 @@ public class SwitcherScript : NetworkBehaviour
     }
     [ServerRpc]
     void AssignTargetPoleToSwitcherServerRpc()
-    {   
-        Debug.Log("Total available poles count : " + Poles.Count);  
-        if(Poles.Count <= 1)
-        {   
+    {
+        if (!GameSessionData.Instance.HasGameStartedYet) return;
+        Debug.Log("Total available poles count : " + Poles.Count);
+        if (Poles.Count <= 1)
+        {
             string notification = "No poles available to assign as target pole. Please wait for the next round.";
             NotifyClientAboutThePoleClientRpc(notification, false, clientRpcParams);
             return;
         }
         Pole targetPole = Poles[UnityEngine.Random.Range(0, Poles.Count)].thisPole;
 
-        if(Poles.Count == 1 && targetPole.Type == thisSwitcher.getOwnedPoleType())
+        if (Poles.Count == 1 && targetPole.Type == thisSwitcher.getOwnedPoleType())
         {
             string notification = "No poles available to assign as target pole. Please wait for the next round.";
             NotifyClientAboutThePoleClientRpc(notification, false, clientRpcParams);
@@ -295,15 +303,15 @@ public class SwitcherScript : NetworkBehaviour
             targetPole = Poles[UnityEngine.Random.Range(0, Poles.Count)].thisPole;
 
         }
-        
+
         if (targetPole == null)
-        { 
+        {
             return;
         }
         else
-        { 
-            if(thisSwitcher == null)
-            { 
+        {
+            if (thisSwitcher == null)
+            {
                 return;
             }
             ClientRpcParams clientRpcParams = new ClientRpcParams
@@ -316,12 +324,12 @@ public class SwitcherScript : NetworkBehaviour
             thisSwitcher.AssignTargetPole(targetPole);
             string notification = $"Your pole has a problem. Get to {targetPole.Type} pole quickly to gather resources and come back";
             targetPoleType.Value = targetPole.Type;
-            
+
             NotifyClientAboutThePoleClientRpc(notification, false, clientRpcParams);
-            isCompletingATask.Value = true; 
+            isCompletingATask.Value = true;
             ShowProblemToPlayerClientRpc();
-            StartTaskTimer();  
-           
+            StartTaskTimer();
+
             return;
         }
     }
@@ -357,12 +365,13 @@ public class SwitcherScript : NetworkBehaviour
             PlaySuccessVFXClientRpc(clientRpcParams);
         }
         thisSwitcher.SetCurrentOccupiedPole(currentPole);
-        
+
         NotifyClientAboutThePoleClientRpc(message, false, clientRpcParams);
     }
 
     void NonServerRpcAssignTargetPoleToSwitcher()
     {
+        if (!GameSessionData.Instance.HasGameStartedYet) { return; }
         Pole targetPole = Poles[UnityEngine.Random.Range(0, Poles.Count)].thisPole;
         Debug.Log("Total available poles count : " + Poles.Count);
         while (targetPole.Type == thisSwitcher.getOwnedPoleType())
@@ -397,11 +406,11 @@ public class SwitcherScript : NetworkBehaviour
         }
     }
     IEnumerator WaitAndAssignNextPole()
-    {   
+    {
 
         yield return new WaitForSeconds(15);
         NonServerRpcAssignTargetPoleToSwitcher();
-        
+
     }
 
     public override void OnNetworkDespawn()
@@ -436,10 +445,10 @@ public class SwitcherScript : NetworkBehaviour
             {
                 Debug.Log($"[Switcher Script : OnTriggerEnter] Pole is now going to be snatched");
                 triggerCaseText.text = $"Pole Entry Case : Snatch logic";
-                
+
                 // Get the pole owner before snatch to break their partnership
                 Switcher poleOwner = currentPole.GetOwner();
-                
+
                 currentPole.SnatchPole(thisSwitcher);
 
                 // Break the previous owner's partnership after snatch
@@ -461,16 +470,16 @@ public class SwitcherScript : NetworkBehaviour
                 InvalidPoleEntryRoutineClientRpc(clientRpcParams);
             }
         }
-       
+
     }
 
     [ClientRpc]
-    void ChangeClientUIClientRpc(PoleType poleType ,ClientRpcParams clientRpcParams = default)
+    void ChangeClientUIClientRpc(PoleType poleType, ClientRpcParams clientRpcParams = default)
     {
         ownedPoleText.text = $"{poleType.ToString()}";
     }
 
-   
+
 
     public string ResolvePoleEntry(Pole currentPole)
     {
@@ -516,7 +525,8 @@ public class SwitcherScript : NetworkBehaviour
     public void StopTaskTimer()
     {
         if (!IsServer) return;
-        isCompletingATask.Value = false;    
+        Debug.Log($"Stopped the task timer");
+        isCompletingATask.Value = false;
         if (taskTimerCoroutine != null)
         {
             StopCoroutine(taskTimerCoroutine);
@@ -527,10 +537,10 @@ public class SwitcherScript : NetworkBehaviour
     }
 
     IEnumerator TaskTimerCoroutine()
-    {   
-        
+    {
+
         int remaining = Mathf.CeilToInt(taskTimeLimit);
-        while (remaining > 0)
+        while (remaining > 0 && GameSessionData.Instance.HasGameStartedYet)
         {
             UpdateTimerClientRpc(remaining, clientRpcParams);
             yield return new WaitForSeconds(1f);
@@ -539,8 +549,10 @@ public class SwitcherScript : NetworkBehaviour
 
         UpdateTimerClientRpc(0, clientRpcParams);
         taskTimerCoroutine = null;
-
-        DestroyPoleRoutine();
+        if (GameSessionData.Instance.HasGameStartedYet)
+        {
+            DestroyPoleRoutine();
+        }
     }
 
     void DestroyPoleRoutine()
@@ -577,9 +589,10 @@ public class SwitcherScript : NetworkBehaviour
         }
     }
 
- 
 
-    [ClientRpc]    void ExplodePoleClientRpc(PoleType poleType)
+
+    [ClientRpc]
+    void ExplodePoleClientRpc(PoleType poleType)
     {
         string poleName = poleType.ToString() + "Pole";
         GameObject poleObj = GameObject.Find(poleName);
@@ -605,7 +618,7 @@ public class SwitcherScript : NetworkBehaviour
     IEnumerator StartStealing()
     {
         float time = 0;
-        while(serverSignalToSteal && time < 5f)
+        while (serverSignalToSteal && time < 5f)
         {
             ManageServerSignalToStealServerRpc();
             yield return new WaitForSeconds(1f);
@@ -646,11 +659,11 @@ public class SwitcherScript : NetworkBehaviour
     void StealPoleServerRpc()
     {
         if (currentPole != null)
-        {   
+        {
             PoleType thisSwitcherPoleType = thisSwitcher.getOwnedPoleType();
-            
-            Pole thisSwitcherPole = GameObject.Find(thisSwitcherPoleType.ToString() + "Pole") ?.GetComponent<PoleScript>().thisPole;
-            
+
+            Pole thisSwitcherPole = GameObject.Find(thisSwitcherPoleType.ToString() + "Pole")?.GetComponent<PoleScript>().thisPole;
+
 
             Switcher victimSwitcher = currentPole.GetOwner();
             PoleType thisSwitcherTargetPoleType = thisSwitcher.getTargetPoleType();
@@ -668,12 +681,12 @@ public class SwitcherScript : NetworkBehaviour
                 .FirstOrDefault(h => h.OwnerClientId == thisSwitcher.getClientID());
             SwitcherRquestHandler victimHandler = allHandlers
                 .FirstOrDefault(h => h.OwnerClientId == victimSwitcher.getClientID());
-            // SwitcherScript.cs � inside StealPoleServerRpc, after BreakPartnership calls
+            // SwitcherScript.cs   inside StealPoleServerRpc, after BreakPartnership calls
 
             thisSwitcherHandler?.UpdatePoleType(thisSwitcher.getOwnedPoleType());   // thief's new pole
             victimHandler?.UpdatePoleType(victimSwitcher.getOwnedPoleType());        // victim's new pole
             thisSwitcherHandler?.BreakPartnershipIfAllied();
-            // victimHandler call is safe � if thief had no alliance, it's a no-op;
+            // victimHandler call is safe   if thief had no alliance, it's a no-op;
             // if victim was allied WITH the thief, alliedWithPoleType is already None after the first call
             victimHandler?.BreakPartnershipIfAllied();
 
@@ -688,12 +701,12 @@ public class SwitcherScript : NetworkBehaviour
             };
 
             NotifyClientAboutThePoleClientRpc($"Your pole was stolen and your new target pole is {victimSwitcher.getTargetPoleType().ToString()}", false, victimClientRpcParams);
-            NotifyClientAboutThePoleClientRpc($"You stole this pole and your new target pole is {thisSwitcher.getTargetPoleType().ToString()}", false,clientRpcParams);
-           
+            NotifyClientAboutThePoleClientRpc($"You stole this pole and your new target pole is {thisSwitcher.getTargetPoleType().ToString()}", false, clientRpcParams);
+
             ChangeClientUIClientRpc(thisSwitcher.getOwnedPoleType(), clientRpcParams);
-            ChangeClientUIClientRpc(victimSwitcher.getOwnedPoleType(),victimClientRpcParams);
-           
-            
+            ChangeClientUIClientRpc(victimSwitcher.getOwnedPoleType(), victimClientRpcParams);
+
+
             thisSwitcherHandler?.ClearSentRequestsAfterStealClientRpc(clientRpcParams);
             victimHandler?.ClearSentRequestsAfterStealClientRpc(victimClientRpcParams);
             // Thief
@@ -722,30 +735,32 @@ public class SwitcherScript : NetworkBehaviour
     void PlaySuccessVFXClientRpc(ClientRpcParams clientRpcParams = default)
     {
         if (successVFX != null)
-            successVFX.Play();  
+            successVFX.Play();
     }
 
     [ClientRpc]
     void PlayResourceGainVFXClientRpc(ClientRpcParams clientRpcParams = default)
     {
-        if(resourceGainVFX != null) resourceGainVFX.Play();
+        if (resourceGainVFX != null) resourceGainVFX.Play();
         dangerVisuals.ShakeCam();
     }
 
     [ClientRpc]
-    void InvalidPoleEntryRoutineClientRpc(ClientRpcParams clientRpcParams = default) {
+    void InvalidPoleEntryRoutineClientRpc(ClientRpcParams clientRpcParams = default)
+    {
         GetComponent<AnimationAndMovementControllerNetwork>().TakeAFall();
         if (wrongPoleEntryAttackVFX != null)
-        {   
-            
+        {
+
             wrongPoleEntryAttackVFX.Play();
         }
-        
+
     }
 
-   
+
     [ClientRpc]
-    void RoutineAfterOwnedPoleDestroyClientRpc(ClientRpcParams clientRpcParams = default) {
+    void RoutineAfterOwnedPoleDestroyClientRpc(ClientRpcParams clientRpcParams = default)
+    {
         GetComponent<AnimationAndMovementControllerNetwork>().enabled = false;
         GetComponent<Animator>().SetTrigger("Die");
     }
@@ -769,11 +784,12 @@ public class SwitcherScript : NetworkBehaviour
     }
 
     [ClientRpc]
-    void ProcessAfterOwningAPoleClientRpc(ClientRpcParams clientRpcParams = default) {
+    void ProcessAfterOwningAPoleClientRpc(ClientRpcParams clientRpcParams = default)
+    {
         GameObject problemVisuals = currentColliderTransform.Find("ProblemVisual").gameObject;
         dangerVisuals = problemVisuals.GetComponent<DangerVisuals>();
 
-        GetComponent<AnimationAndMovementControllerNetwork>().PassFLCamDataToVisuals(dangerVisuals,throwableMagic);
+        GetComponent<AnimationAndMovementControllerNetwork>().PassFLCamDataToVisuals(dangerVisuals, throwableMagic);
 
     }
 
@@ -803,6 +819,6 @@ public class SwitcherScript : NetworkBehaviour
     public float GetTaskTimeLimit()
     {
         return taskTimeLimit;
-    }   
+    }
 
 }

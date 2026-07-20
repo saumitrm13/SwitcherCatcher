@@ -19,7 +19,7 @@ public class LobbyFeatures : MonoBehaviour
     [SerializeField] private TextMeshProUGUI debugText;
     [SerializeField] private GameObject FirstPanel;
     [SerializeField] GameObject startGameButton;
-  
+
 
     private const float HeartbeatInterval = 15f;
 
@@ -129,7 +129,7 @@ public class LobbyFeatures : MonoBehaviour
         _ = UnsubscribeFromCurrentLobbyEvents();
         SetCurrentLobby(null);
         FindAnyObjectByType<LobbyFeatures>()?.HandleLobbyGone("Your lobby was deleted");
-       
+
     }
 
     private static void OnDataChangedStatic(
@@ -167,14 +167,14 @@ public class LobbyFeatures : MonoBehaviour
     {
         StopHeartbeat();
         if (debugText != null) debugText.text = message;
-        if(NetworkManager.Singleton != null || NetworkManager.Singleton.IsListening)
+        if (NetworkManager.Singleton != null || NetworkManager.Singleton.IsListening)
         {
             NetworkManager.Singleton.Shutdown();
         }
         lobbyFunctions?.ActivatePanel(FirstPanel);
     }
 
-   
+
 
     // ─── Heartbeat ────────────────────────────────────────────────────────────
 
@@ -247,7 +247,7 @@ public class LobbyFeatures : MonoBehaviour
             playerInfo.transform.Find("PlayerNameText").GetComponent<TextMeshProUGUI>().text
                 = player.Data != null && player.Data.ContainsKey("PlayerName")
                 ? player.Data["PlayerName"].Value : "Unknown";
-           
+
             Button kickOutBtn = playerInfo.transform.Find("KickOutBtn")?.GetComponent<Button>();
             if (kickOutBtn != null)
             {

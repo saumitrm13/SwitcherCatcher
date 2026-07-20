@@ -9,23 +9,29 @@ public class PoleExplosionEffect : MonoBehaviour
     [SerializeField] float upwardsModifier = 1.5f;
     [SerializeField] float timeForPoleDestruction = 3f;
     [SerializeField] Collider sphereCollider;
-    [SerializeField] Vector3 cubeStackSpawnLocalPos = new Vector3(0.003f,0.0067f,0.128f);
-    [SerializeField] Vector3 cubeStackSpawnLocalRot = new Vector3(0,-90,-90);
-    [SerializeField] Vector3 cubeStackSpaenLocalScale = new Vector3(0.01f,0.01f,0.01f);
+    [SerializeField] Vector3 cubeStackSpawnLocalPos = new Vector3(0.003f, 0.0067f, 0.128f);
+    [SerializeField] Vector3 cubeStackSpawnLocalRot = new Vector3(0, -90, -90);
+    [SerializeField] Vector3 cubeStackSpaenLocalScale = new Vector3(0.01f, 0.01f, 0.01f);
     [SerializeField] Animator thisPoleAnimator;
     MeshRenderer meshRenderer;
     GameObject currentCubeStack;
-    
 
-    bool isDestroyed = false;    
+
+    bool isDestroyed = false;
 
     private void Start()
     {
         meshRenderer = GetComponent<MeshRenderer>();
         StartCoroutine(ActivateCubeStackCoroutine());
+        GameStartManager.OnRoundEndedClientSignal += ResetPole;
+        GameStartManager.OnNewRoundStartedClientSignal += ResetPole;
     }
     public void Explode()
     {
+        if (!GameSessionData.Instance.HasGameStartedYet)
+        {
+            return;
+        }
         if (currentCubeStack == null) return;
         Debug.Log($"[PoleExplosionEffect] Exploding pole: {gameObject.name}");
         currentCubeStack.SetActive(true);
@@ -48,6 +54,7 @@ public class PoleExplosionEffect : MonoBehaviour
 
     IEnumerator PoleDestroyRoutine()
     {
+
         yield return new WaitForSeconds(timeForPoleDestruction);
         Destroy(currentCubeStack);
         currentCubeStack = null;
@@ -67,12 +74,12 @@ public class PoleExplosionEffect : MonoBehaviour
         thisPoleAnimator.Rebind();
         thisPoleAnimator.Update(0f);
         thisPoleAnimator.enabled = false;
-        meshRenderer.enabled = true;    
+        meshRenderer.enabled = true;
         Debug.Log($"[PoleExplosionEffect] Activating cube stack for pole: {gameObject.name}");
         if (cubeStackPrefab != null && currentCubeStack == null)
-        {   
-            currentCubeStack = Instantiate(cubeStackPrefab,transform);
-            currentCubeStack.transform.localPosition = cubeStackSpawnLocalPos;  
+        {
+            currentCubeStack = Instantiate(cubeStackPrefab, transform);
+            currentCubeStack.transform.localPosition = cubeStackSpawnLocalPos;
             currentCubeStack.transform.localRotation = Quaternion.EulerRotation(cubeStackSpawnLocalRot);
             currentCubeStack.transform.localScale = cubeStackSpaenLocalScale;
             currentCubeStack.SetActive(false);
@@ -82,6 +89,6 @@ public class PoleExplosionEffect : MonoBehaviour
         {
             Debug.LogWarning($"[PoleExplosionEffect] Cube stack prefab is not assigned for pole: {gameObject.name}");
         }
-            yield return null;
+        yield return null;
     }
 }

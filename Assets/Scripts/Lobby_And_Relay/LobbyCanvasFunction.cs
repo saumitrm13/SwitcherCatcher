@@ -26,7 +26,7 @@ public class LobbyCanvasFunction : MonoBehaviour
     [SerializeField] GameObject boundariesBeforeGameStart;
     public TextMeshProUGUI userNameText;
     public TextMeshProUGUI debugText;
-    
+
 
     private const string PlayerNameDataKey = "PlayerName";
     private const string PlayerNamePrefsKey = "PlayerName";
@@ -71,8 +71,8 @@ public class LobbyCanvasFunction : MonoBehaviour
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
                 Debug.Log($"Player signed in anonymously | PlayerId: {AuthenticationService.Instance.PlayerId}");
                 if (nameErrorText != null) nameErrorText.text = "";
-                
-               
+
+
             }
             catch (Exception e)
             {
@@ -88,7 +88,7 @@ public class LobbyCanvasFunction : MonoBehaviour
     private void Start()
     {
         LoadSavedPlayerName();
-        
+
     }
 
     public void ActivatePanel(GameObject panel)
@@ -153,22 +153,22 @@ public class LobbyCanvasFunction : MonoBehaviour
             // ── Start the host ──
             Debug.Log("[Host] Starting NetworkManager as host...");
             GameSessionData.Instance.IsRelayHost = true;
-            
+
             //if (LobbyDataContainer == null)
             //{
             //    Debug.LogError("[Host] LobbyDataContainer not assigned!");
             //    return;
             //}
-            
+
             //// Hide lobby UI and activate game session
             //LobbyDataContainer.SetActive(false);
             //if (GameSessionObjects != null)
             //    GameSessionObjects.SetActive(true);
-            
+
             NetworkManager.Singleton.StartHost();
             boundariesBeforeGameStart.SetActive(true);
             ActivatePanel(currentLobbyInfoPanel);
-            
+
             Debug.Log($"[Host] Private Lobby created and host started: {lobbyName}, Relay Code: {relayJoinCode}");
         }
         catch (Exception e)
@@ -234,18 +234,18 @@ public class LobbyCanvasFunction : MonoBehaviour
             // ── Start the host ──
             Debug.Log("[Host] Starting NetworkManager as host...");
             GameSessionData.Instance.IsRelayHost = true;
-            
+
             //if (LobbyDataContainer == null)
             //{
             //    Debug.LogError("[Host] LobbyDataContainer not assigned!");
             //    return;
             //}
-            
+
             //// Hide lobby UI and activate game session
             //LobbyDataContainer.SetActive(false);
             //if (GameSessionObjects != null)
             //    GameSessionObjects.SetActive(true);
-            
+
             NetworkManager.Singleton.StartHost();
             boundariesBeforeGameStart.SetActive(true);
             ActivatePanel(currentLobbyInfoPanel);
@@ -285,21 +285,21 @@ public class LobbyCanvasFunction : MonoBehaviour
             {
                 string relayJoinCode = currentLobby.Data["RelayJoinCode"].Value;
                 Debug.Log("[Client] Relay code found, joining relay...");
-                
+
                 GameSessionData.Instance.IsRelayHost = false;
                 await RelayManager.JoinRelay(relayJoinCode);
-                
+
                 // Hide lobby UI and activate game session
                 //if (LobbyDataContainer == null)
                 //{
                 //    Debug.LogError("[Client] LobbyDataContainer not assigned!");
                 //    return;
                 //}
-                
+
                 //LobbyDataContainer.SetActive(false);
                 //if (GameSessionObjects != null)
                 //    GameSessionObjects.SetActive(true);
-                
+
                 // Start as client
                 Debug.Log("[Client] Starting NetworkManager as client...");
                 NetworkManager.Singleton.StartClient();
@@ -335,16 +335,17 @@ public class LobbyCanvasFunction : MonoBehaviour
         }
         try
         {
-            // Unsubscribe before leaving so we don't receive a spurious KickedFromLobby.
             await LobbyFeatures.UnsubscribeFromCurrentLobbyEvents();
 
             string playerId = AuthenticationService.Instance.PlayerId;
             await LobbyService.Instance.RemovePlayerAsync(LobbyFeatures.GetCurrentLobby().Id, playerId);
             LobbyFeatures.SetCurrentLobby(null);
             currentLobby = null;
-            if (NetworkManager.Singleton != null || NetworkManager.Singleton.IsListening) { 
+            if (NetworkManager.Singleton != null || NetworkManager.Singleton.IsListening)
+            {
                 NetworkManager.Singleton.Shutdown();
             }
+            GameSessionData.Instance?.ResetSession();
             ActivatePanel(FirstPanel);
             debugText.text = "Left lobby successfully";
         }
@@ -368,6 +369,7 @@ public class LobbyCanvasFunction : MonoBehaviour
                 debugText.text = "Lobby deleted successfully";
                 if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
                     NetworkManager.Singleton.Shutdown();
+                GameSessionData.Instance?.ResetSession();
                 ActivatePanel(FirstPanel);
                 boundariesBeforeGameStart.SetActive(true);
             }
@@ -405,7 +407,7 @@ public class LobbyCanvasFunction : MonoBehaviour
         return true;
     }
 
-  
+
 
     private void LoadSavedPlayerName()
     {
@@ -413,19 +415,20 @@ public class LobbyCanvasFunction : MonoBehaviour
         {
             return;
         }
-      
+
         string savedPlayerName = PlayerPrefs.GetString(PlayerNamePrefsKey, string.Empty);
-        if (string.IsNullOrEmpty(savedPlayerName)) {
+        if (string.IsNullOrEmpty(savedPlayerName))
+        {
             ActivatePanel(playerNamePanel);
             return;
         }
-        userNameText.text =  savedPlayerName;
+        userNameText.text = savedPlayerName;
         ActivatePanel(FirstPanel);
-        if (!string.IsNullOrWhiteSpace(savedPlayerName)  && string.IsNullOrWhiteSpace(playerNameInputField.text))
+        if (!string.IsNullOrWhiteSpace(savedPlayerName) && string.IsNullOrWhiteSpace(playerNameInputField.text))
             playerNameInputField.text = savedPlayerName;
     }
 
- 
+
 
     public void ConfirmPlayerName(GameObject FirstPanel)
     {
@@ -449,7 +452,7 @@ public class LobbyCanvasFunction : MonoBehaviour
     {
         return new Unity.Services.Lobbies.Models.Player
         {
-            Data = new Dictionary<String,PlayerDataObject>
+            Data = new Dictionary<String, PlayerDataObject>
         {
             {
                 "PlayerName",

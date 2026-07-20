@@ -107,20 +107,9 @@ public class DisconnectManager : NetworkBehaviour
     /// </summary>
     public static void RunHostLeftCleanupStatic()
     {
-        // NOTE: deliberately NOT gated on gameHasStarted. That flag is set via
-        // an instance method (MarkGameStarted) on a NetworkBehaviour singleton,
-        // which is subject to spawn-order races — Instance can still be null
-        // on a given client when StartGameForEveryClientClientRpc fires, silently
-        // dropping the flag update via the `?.` call. Losing the server
-        // connection (OnClientStopped, wasHost=false) is unconditionally worth
-        // reacting to: the player has no session to continue regardless of
-        // whether we successfully recorded "game started" locally.
         gameHasStarted = false;
 
-        if (GameSessionData.Instance != null)
-        {
-            GameSessionData.Instance.HasGameStartedYet = false;
-        }
+        GameSessionData.Instance?.ResetSession();
 
         var manager = Instance;
         if (manager != null)
@@ -129,18 +118,11 @@ public class DisconnectManager : NetworkBehaviour
         }
         else
         {
-            // Fallback if the DisconnectManager NetworkObject was never spawned yet
-            // on this client, or was already destroyed by Netcode's teardown:
-            // find the scene references the hard way and still activate the panel,
-            // rather than silently doing nothing.
             Debug.LogWarning("[DisconnectManager] Instance was null during host-leave cleanup; falling back to FindAnyObjectByType for panel activation.");
 
             var lobbyFunctions = FindAnyObjectByType<LobbyCanvasFunction>();
             if (lobbyFunctions != null)
             {
-                // Same scale-vs-SetActive caveat as the primary path above:
-                // this project hides the lobby canvas via localScale = Vector3.zero,
-                // so SetActive(true) alone isn't enough to make it visible.
                 lobbyFunctions.gameObject.SetActive(true);
                 lobbyFunctions.transform.localScale = Vector3.one;
             }
@@ -226,7 +208,6 @@ public class DisconnectManager : NetworkBehaviour
             return;
         }
 
-        // Guard: don't try to remove the host from its own lobby.
         if (lobbyPlayerId == AuthenticationService.Instance.PlayerId)
         {
             Debug.LogWarning("[DisconnectManager] Attempted to remove host from lobby — skipping.");
@@ -241,6 +222,10 @@ public class DisconnectManager : NetworkBehaviour
         catch (System.Exception e)
         {
             Debug.LogWarning($"[DisconnectManager] Failed to remove lobby player {lobbyPlayerId}: {e.Message}");
+        }
+        finally
+        {
+            GameSessionData.Instance?.RemoveClient(clientId);
         }
     }
 
@@ -298,7 +283,7 @@ public class DisconnectManager : NetworkBehaviour
     {
         if (gameCanvasPanel != null)
         {
-            gameCanvasPanel.localScale = Vector3.zero;  
+            gameCanvasPanel.localScale = Vector3.zero;
         }
 
         // This project shows/hides the lobby canvas via localScale (see

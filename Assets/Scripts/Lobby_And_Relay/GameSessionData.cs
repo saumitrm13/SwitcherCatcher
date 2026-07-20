@@ -30,7 +30,7 @@ public class GameSessionData : MonoBehaviour
     /// </summary>
     public static event Action OnNewRoundStarted;
 
-    
+
     void Awake()
     {
         if (Instance != null) { Destroy(gameObject); return; }
@@ -39,7 +39,7 @@ public class GameSessionData : MonoBehaviour
         Instance.HasGameStartedYet = false;
     }
 
-    public void RegisterName(ulong clientId, string playerName) 
+    public void RegisterName(ulong clientId, string playerName)
     {
         ClientIdToName[clientId] = playerName;
         OnPlayerNamesUpdated?.Invoke();
@@ -59,7 +59,40 @@ public class GameSessionData : MonoBehaviour
         ClientIdToLobbyPlayerId[clientId] = lobbyPlayerId;
         OnClientIdMappingUpdated?.Invoke();
     }
+    /// <summary>
+    /// Removes a single departed client's name/id mappings, leaving every other
+    /// currently-present player's data untouched. Call this for individual
+    /// leave/disconnect events (mid-game client drop, single player leaving a
+    /// still-alive lobby) — NOT for full lobby teardown, use ResetSession() there.
+    /// </summary>
+    public void RemoveClient(ulong clientId)
+    {
+        bool namesChanged = ClientIdToName.Remove(clientId);
+        bool idsChanged = ClientIdToLobbyPlayerId.Remove(clientId);
 
+        if (namesChanged) OnPlayerNamesUpdated?.Invoke();
+        if (idsChanged) OnClientIdMappingUpdated?.Invoke();
+    }
+
+    /// <summary>
+    /// Full teardown: clears every player's name/id mapping and resets round
+    /// state. Call this when the lobby itself goes away — host deletes it,
+    /// the local player leaves it, or the host disconnects mid-game and
+    /// everyone gets kicked back to the lobby screen. Do NOT call this for a
+    /// single client dropping out of an otherwise-still-running lobby/game;
+    /// use RemoveClient(clientId) for that instead.
+    /// </summary>
+    public void ResetSession()
+    {
+        ClientIdToName.Clear();
+        ClientIdToLobbyPlayerId.Clear();
+        CatcherPlayerId = null;
+        RoundNumber = 0;
+        HasGameStartedYet = false;
+
+        OnPlayerNamesUpdated?.Invoke();
+        OnClientIdMappingUpdated?.Invoke();
+    }
     /// <summary>
     /// Called by GameStartManager's ClientRpc on every machine to fire the
     /// OnNewRoundStarted event locally. Kept here so the event's backing field

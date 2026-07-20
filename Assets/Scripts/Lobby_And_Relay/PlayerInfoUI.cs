@@ -13,13 +13,13 @@ public class PlayerInfoUI : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 
     public void SetupPlayerScoreTracking(string lobbyPlayerId)
@@ -87,7 +87,7 @@ public class PlayerInfoUI : MonoBehaviour
 
     private void OnDestroy()
     {
-      
+
         GameSessionData.OnClientIdMappingUpdated -= TryResolveClientId;
         if (ScoreManager.Instance != null)
             ScoreManager.Instance.PlayerScores.OnListChanged -= OnScoresChanged;

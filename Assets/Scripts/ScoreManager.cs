@@ -70,6 +70,9 @@ public class ScoreManager : NetworkBehaviour
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
             NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
         }
+        // Always clear locally too — client-side NetworkList also needs to drop stale state
+        if (PlayerScores != null && PlayerScores.Count > 0)
+            PlayerScores.Clear();
     }
 
     // ── Server callbacks ──────────────────────────────────────────────────────
@@ -83,6 +86,7 @@ public class ScoreManager : NetworkBehaviour
     {
         if (!IsServer) return;
         RemovePlayerScore(clientId);
+        GameSessionData.Instance?.RemoveClient(clientId);
     }
 
     /// <summary>

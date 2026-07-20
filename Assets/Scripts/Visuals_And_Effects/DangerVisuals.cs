@@ -39,7 +39,7 @@ public class DangerVisuals : MonoBehaviour
     CinemachineCamera _characterFLCam;
     Transform _originalTargetTransformForCharacterFLCam;
     GameObject _throwableMagic;
-   
+
     Vector3 _initialLocalPositionForThrowableMagic;
     Vector3 _initial_LP_For_TM_Anchor;
     Transform _ownerTransform;
@@ -53,8 +53,9 @@ public class DangerVisuals : MonoBehaviour
     {
         InitializePool();
         _initial_LP_For_TM_Anchor = anchorForThrowableMagic.transform.localPosition;
-        explosionVFX = GameObject.Find("PoleTopExplosion").GetComponent<ParticleSystem>(); 
+        explosionVFX = GameObject.Find("PoleTopExplosion").GetComponent<ParticleSystem>();
         GameStartManager.OnRoundEndedClientSignal += ResetDangerVisuals;
+        GameStartManager.OnNewRoundStartedClientSignal += ResetDangerVisuals;
     }
 
     // ── Pool Lifecycle ───────────────────────────────────────────────────────
@@ -156,7 +157,7 @@ public class DangerVisuals : MonoBehaviour
         _shakeController = _characterFLCam.GetComponent<ShakeController>();
         explosionVFX.transform.SetParent(transform);
         explosionVFX.transform.localPosition = localPositionForExplosionVFX;
-          
+
 
     }
 
@@ -170,12 +171,12 @@ public class DangerVisuals : MonoBehaviour
         _isPoolActive = showProblem;
         problemSolvedVFX.SetActive(!showProblem);
         if (!showProblem)
-        {   
+        {
             _throwableMagic.SetActive(true);
             _throwableMagic.transform.SetParent(anchorForThrowableMagic);
             _characterFLCam.Target.TrackingTarget = _throwableMagic.transform;
             anchorForThrowableMagic.DOMove(miniCatcherOnTopOfTheTower.transform.position, 1.5f).OnComplete(() =>
-            {   
+            {
                 ShakeCam(true);
                 _throwableMagic.transform.DOMove(miniCatcherOnTopOfTheTower.transform.position, 0.5f).OnComplete(() =>
                 {
@@ -213,7 +214,8 @@ public class DangerVisuals : MonoBehaviour
 
     public void ShakeCam(bool lightShake = false)
     {
-        if (lightShake) {
+        if (lightShake)
+        {
             _shakeController.TriggerSmallShake();
             return;
         }
@@ -222,13 +224,13 @@ public class DangerVisuals : MonoBehaviour
 
     void ResetDangerVisuals()
     {
-        StartCoroutine(ResetDangerVisualsCoroutine());  
+        StartCoroutine(ResetDangerVisualsCoroutine());
     }
-    
+
     IEnumerator ResetDangerVisualsCoroutine()
-    {   
+    {
         miniCatcherOnTopOfTheTower.SetActive(false);
-        if(_characterFLCam!=null && _originalTargetTransformForCharacterFLCam!=null)
+        if (_characterFLCam != null && _originalTargetTransformForCharacterFLCam != null)
             _characterFLCam.Target.TrackingTarget = _originalTargetTransformForCharacterFLCam;
         yield return null;
     }

@@ -54,8 +54,9 @@ public class CatcherScript : NetworkBehaviour
             hasPowers.Value = true;
             Debug.Log("Catcher has powers: " + hasPowers.Value);
             StartPowerDrainTimer();
-            StartCoroutine(GetPowerSourceDropPointsCoroutine());
+
         }
+        StartCoroutine(GetPowerSourceDropPointsCoroutine());
     }
 
     public override void OnNetworkSpawn()
@@ -78,7 +79,7 @@ public class CatcherScript : NetworkBehaviour
             animator = GetComponent<Animator>();
             localOwnerInstance = gameObject;
         }
-        
+
     }
 
     private void OnTriggerEnter(Collider other)
@@ -86,7 +87,7 @@ public class CatcherScript : NetworkBehaviour
         if (!isActiveAndEnabled)
             return;
         if (other.gameObject.CompareTag("PowerSource") && currentCatcherPowerValue.Value < 5)
-        {   
+        {
             Debug.Log("Collided with power source");
             StartCoroutine(DropPowerPrefabCoroutine());
             if (IsServer)

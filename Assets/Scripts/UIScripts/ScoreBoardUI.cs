@@ -25,15 +25,15 @@ public class ScoreboardUI : MonoBehaviour
     [Tooltip("Temporary text to flash when any score changes. Leave empty to skip.")]
     [SerializeField] TextMeshProUGUI toastText;
     [SerializeField] float toastDuration = 2f;
-    
-    bool isScoreBoardVisible = false;   
+
+    bool isScoreBoardVisible = false;
 
     private Coroutine _toastCoroutine;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     private void OnEnable()
     {
-        GameSessionData.OnPlayerNamesUpdated += RefreshUI;  
+        GameSessionData.OnPlayerNamesUpdated += RefreshUI;
         // ScoreManager may not be ready immediately (network startup timing).
         // Poll until it is, then subscribe.
         StartCoroutine(WaitForScoreManagerAndSubscribe());
@@ -142,6 +142,6 @@ public class ScoreboardUI : MonoBehaviour
     public void ToggleScoreBoard(GameObject scoreBoard)
     {
         isScoreBoardVisible = !isScoreBoardVisible;
-        scoreBoard.SetActive(isScoreBoardVisible);  
+        scoreBoard.SetActive(isScoreBoardVisible);
     }
 }

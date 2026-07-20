@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TMPro;
@@ -114,6 +114,7 @@ public class OpenLobbyFunctions : MonoBehaviour
                 GameSessionData.Instance.IsRelayHost = false;
                 await RelayManager.JoinRelay(relayJoinCode);
                 Debug.Log("[Client] Starting NetworkManager as client...");
+                await LobbyFeatures.EnsureNetworkManagerShutdownComplete();
                 NetworkManager.Singleton.StartClient();
                 boundariesBeforeGameStart.SetActive(true);
             }

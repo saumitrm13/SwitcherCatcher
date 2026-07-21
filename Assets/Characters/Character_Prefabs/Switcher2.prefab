@@ -2345,6 +2345,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
+  targetPoleText: {fileID: 0}
   isInSafeZone:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
@@ -2431,11 +2432,14 @@ MonoBehaviour:
   catcherBody: {fileID: 6237819421427921498}
   playerPrefabAnimator: {fileID: 7776193074342476770}
   catcherAvatar: {fileID: 9000000, guid: 65937e052053c7848af7abda6cd3dc7e, type: 3}
+  switcherAvatar: {fileID: 9000000, guid: b8f4021f65f7ea149876b1dd62efe6b0, type: 3}
   catcherColliderCentre: {x: 0, y: 0.8, z: 0.91}
   catcherColliderSize: {x: 1, y: 1.84, z: 1.67}
   switcherHitsParticleSystems:
   - {fileID: 673175968482397062}
   - {fileID: 5300001799087903757}
+  switcherColliderCentre: {x: 0, y: 0.8, z: 0.11}
+  switcherColliderSize: {x: 1, y: 1.84, z: 1}
 --- !u!4 &4398533260426404248 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: b8f4021f65f7ea149876b1dd62efe6b0, type: 3}

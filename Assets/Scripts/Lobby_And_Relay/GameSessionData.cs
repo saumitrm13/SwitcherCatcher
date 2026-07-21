@@ -30,6 +30,8 @@ public class GameSessionData : MonoBehaviour
     /// </summary>
     public static event Action OnNewRoundStarted;
 
+    [HideInInspector]
+    public int deadSwitchersCountThisRound = 0;
 
     void Awake()
     {

@@ -24,7 +24,11 @@ public class GameStartManager : NetworkBehaviour
     public static event Action OnRoundEndedClientSignal;
     public static event Action OnNewRoundStarted;
     public static event Action OnNewRoundStartedClientSignal;
+
+
     Coroutine roundTimerCoroutine;
+
+
 
     // Populated externally when players connect (Auth ID → Netcode Client ID)
     // e.g. fill this from your player spawn manager on client connect
@@ -42,21 +46,9 @@ public class GameStartManager : NetworkBehaviour
         if (GameSessionData.Instance.RoundNumber == 1)
         {
             // ── First round: choose a random catcher ──────────────────────────
-            var connectedClientIds = new List<ulong>(NetworkManager.Singleton.ConnectedClientsIds);
-            if (connectedClientIds.Count == 0) return;
 
-            ulong catcherClientId = connectedClientIds[UnityEngine.Random.Range(0, connectedClientIds.Count)];
 
-            if (NetworkManager.Singleton.ConnectedClients.TryGetValue(catcherClientId, out var client))
-            {
-                client.PlayerObject.GetComponent<PlayerVisuals>().AssignAsCatcher();
-                GameSessionData.Instance.CatcherPlayerId = catcherClientId.ToString();
-                Debug.Log($"[GameStartManager] Catcher assigned: client {catcherClientId}");
-            }
-            else
-            {
-                Debug.LogError($"[GameStartManager] Could not find player object for client {catcherClientId}");
-            }
+            AssignRandomCatcher();
 
             StartGameForEveryClientClientRpc();
 
@@ -68,7 +60,80 @@ public class GameStartManager : NetworkBehaviour
             // ── Subsequent rounds: run the inter-round routine instead ─────────
             NewRoundRoutine();
         }
+        CatcherScript.OnAllSwitchersCaught += OnAllSwitchersCaught;
     }
+
+    void OnAllSwitchersCaught()
+    {
+        StartCoroutine(CatcherWinsRoundEndCoroutine());
+    }
+
+    IEnumerator CatcherWinsRoundEndCoroutine()
+    {
+        yield return new WaitForSeconds(5f);
+        RoutineAfterRoundEnd();
+        if (roundTimerCoroutine != null)
+        {
+            StopCoroutine(roundTimerCoroutine);
+            roundTimerCoroutine = null;
+        }
+        RoutineAfterRoundEnd();
+    }
+
+
+    /// <summary>
+    /// Server-only. Demotes the current catcher (if any) back to Switcher, then
+    /// promotes a new randomly-chosen connected client to Catcher, excluding the
+    /// player who was just demoted so the role always rotates to someone else.
+    /// Updates GameSessionData.CatcherPlayerId to match the new catcher.
+    /// </summary>
+    private void AssignRandomCatcher()
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+
+        var connectedClientIds = new List<ulong>(NetworkManager.Singleton.ConnectedClientsIds);
+        if (connectedClientIds.Count == 0) return;
+
+        ulong? previousCatcherId = null;
+
+        // ── Demote the previous catcher, if there was one ──────────────────────
+        if (!string.IsNullOrEmpty(GameSessionData.Instance.CatcherPlayerId) &&
+            ulong.TryParse(GameSessionData.Instance.CatcherPlayerId, out ulong parsedPreviousId))
+        {
+            previousCatcherId = parsedPreviousId;
+
+            if (NetworkManager.Singleton.ConnectedClients.TryGetValue(parsedPreviousId, out var previousClient) &&
+                previousClient.PlayerObject != null)
+            {
+                previousClient.PlayerObject.GetComponent<PlayerVisuals>().AssignAsSwitcher();
+                Debug.Log($"[GameStartManager] Demoted previous catcher: client {parsedPreviousId}");
+            }
+        }
+
+        // ── Build the pool, excluding the previous catcher if possible ─────────
+        List<ulong> pool = previousCatcherId.HasValue
+            ? connectedClientIds.Where(id => id != previousCatcherId.Value).ToList()
+            : connectedClientIds;
+
+        // Fallback: if excluding the previous catcher leaves nobody (e.g. only
+        // one player connected), fall back to the full list so the game doesn't stall.
+        if (pool.Count == 0)
+            pool = connectedClientIds;
+
+        ulong catcherClientId = pool[UnityEngine.Random.Range(0, pool.Count)];
+
+        if (NetworkManager.Singleton.ConnectedClients.TryGetValue(catcherClientId, out var client))
+        {
+            client.PlayerObject.GetComponent<PlayerVisuals>().AssignAsCatcher();
+            GameSessionData.Instance.CatcherPlayerId = catcherClientId.ToString();
+            Debug.Log($"[GameStartManager] Catcher assigned: client {catcherClientId}");
+        }
+        else
+        {
+            Debug.LogError($"[GameStartManager] Could not find player object for client {catcherClientId}");
+        }
+    }
+
 
     /// <summary>
     /// Server-only. Called at the start of every round after the first.
@@ -80,6 +145,9 @@ public class GameStartManager : NetworkBehaviour
         if (!NetworkManager.Singleton.IsServer) return;
 
         Debug.Log($"[GameStartManager] NewRoundRoutine() — round {GameSessionData.Instance.RoundNumber}.");
+
+        // ── 0. Rotate the catcher: demote previous, promote a new one ──────────
+        AssignRandomCatcher();
 
         // ── 1. Reset every Pole's ownership and occupancy state ───────────────
         var allPoleScripts = FindObjectsByType<PoleScript>(FindObjectsSortMode.None);
@@ -93,36 +161,30 @@ public class GameStartManager : NetworkBehaviour
         var allSwitchers = FindObjectsByType<SwitcherScript>(FindObjectsSortMode.None);
         foreach (var sw in allSwitchers)
         {
-            // Clear replicated NetworkVariables (automatically propagated to clients)
             sw.ownedPoleType.Value = PoleType.None;
             sw.targetPoleType.Value = PoleType.None;
             sw.isCompletingATask.Value = false;
 
-            // Clear the local Switcher data object (owned pole, target pole)
             if (sw.thisSwitcher != null)
                 sw.thisSwitcher.ResetForNewRound();
 
-            // Stop any running task timer and hide its UI on the owning client
             sw.StopTaskTimer();
-
-            // Reset in-transit resource flag (server-side field)
             sw.hasNecessaryResource = false;
-
-            //Reset available poles for each switcher
             sw.GetAllPoles();
         }
         Debug.Log($"[GameStartManager] Reset {allSwitchers.Length} switcher states.");
 
         // ── 3. Teleport every player NetworkObject back to the origin ──────────
+        // (Already covers the catcher too — ConnectedClients includes everyone.)
         foreach (var kvp in NetworkManager.Singleton.ConnectedClients)
         {
             NetworkObject playerObj = kvp.Value.PlayerObject;
             if (playerObj != null)
             {
                 var cc = playerObj.GetComponent<CharacterController>();
-                if (cc != null) cc.enabled = false;      // disable before moving, so CC doesn't fight the write
+                if (cc != null) cc.enabled = false;
                 playerObj.transform.position = new Vector3(0, 0.4580349f, 0);
-                if (cc != null) cc.enabled = true;       // re-enable after
+                if (cc != null) cc.enabled = true;
             }
         }
         Debug.Log("[GameStartManager] Teleported all players to Vector3.zero.");
@@ -167,6 +229,7 @@ public class GameStartManager : NetworkBehaviour
     public void RoutineAfterRoundEnd()
     {
         if (!NetworkManager.Singleton.IsServer) return;
+        CatcherScript.OnAllSwitchersCaught -= OnAllSwitchersCaught;
         Debug.Log("Round has ended. Executing server-side cleanup and notifying clients.");
         if (roundTimerCoroutine != null)
         {
@@ -241,5 +304,16 @@ public class GameStartManager : NetworkBehaviour
         }
 
 
+    }
+
+    void OnNetworkDespawn()
+    {
+        if (roundTimerCoroutine != null)
+        {
+            StopCoroutine(roundTimerCoroutine);
+            roundTimerCoroutine = null;
+
+        }
+        CatcherScript.OnAllSwitchersCaught -= OnAllSwitchersCaught;
     }
 }

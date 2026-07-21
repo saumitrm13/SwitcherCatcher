@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using Unity.Netcode;
+using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
@@ -34,7 +35,7 @@ public class GameStartManager : NetworkBehaviour
     // e.g. fill this from your player spawn manager on client connect
     public static Dictionary<string, ulong> AuthToClientId = new();
 
-    public void StartGame()
+    public async void StartGame()
     {
         CatcherPowerSource.SetActive(true);
         if (!NetworkManager.Singleton.IsServer) return;
@@ -42,7 +43,13 @@ public class GameStartManager : NetworkBehaviour
         // Increment before branching so RoundNumber == 1 on the very first call.
         GameSessionData.Instance.RoundNumber++;
         Debug.Log($"[GameStartManager] Starting round {GameSessionData.Instance.RoundNumber}.");
-
+        await LobbyService.Instance.UpdateLobbyAsync(LobbyFeatures.GetCurrentLobby().Id, new UpdateLobbyOptions
+        {
+            Data = new Dictionary<string, DataObject>
+            {
+                { LobbyKeys.GameStarted, new DataObject(DataObject.VisibilityOptions.Public, "true") }
+            }
+        });
         if (GameSessionData.Instance.RoundNumber == 1)
         {
             // ── First round: choose a random catcher ──────────────────────────
@@ -63,13 +70,15 @@ public class GameStartManager : NetworkBehaviour
         CatcherScript.OnAllSwitchersCaught += OnAllSwitchersCaught;
     }
 
-    void OnAllSwitchersCaught()
+    async void OnAllSwitchersCaught()
     {
+       
         StartCoroutine(CatcherWinsRoundEndCoroutine());
     }
 
     IEnumerator CatcherWinsRoundEndCoroutine()
-    {
+    {   
+
         yield return new WaitForSeconds(5f);
         RoutineAfterRoundEnd();
         if (roundTimerCoroutine != null)
@@ -226,9 +235,16 @@ public class GameStartManager : NetworkBehaviour
         RoutineAfterRoundEnd();
     }
 
-    public void RoutineAfterRoundEnd()
+    public async void RoutineAfterRoundEnd()
     {
         if (!NetworkManager.Singleton.IsServer) return;
+        await LobbyService.Instance.UpdateLobbyAsync(LobbyFeatures.GetCurrentLobby().Id, new UpdateLobbyOptions
+        {
+            Data = new Dictionary<string, DataObject>
+            {
+                { LobbyKeys.GameStarted, new DataObject(DataObject.VisibilityOptions.Public, "false") }
+            }
+        });
         CatcherScript.OnAllSwitchersCaught -= OnAllSwitchersCaught;
         Debug.Log("Round has ended. Executing server-side cleanup and notifying clients.");
         if (roundTimerCoroutine != null)

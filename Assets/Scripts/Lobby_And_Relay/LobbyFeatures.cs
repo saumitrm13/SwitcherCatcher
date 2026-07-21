@@ -9,6 +9,12 @@ using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
 
+
+public static class LobbyKeys
+{
+    public const string RelayJoinCode = "RelayJoinCode";
+    public const string GameStarted = "GameStarted";
+}
 public class LobbyFeatures : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI lobbyNameForDisplayText;
@@ -120,10 +126,10 @@ public class LobbyFeatures : MonoBehaviour
 
         // Check if the game has been started by the host
         if (currentLobby.Data != null
-            && currentLobby.Data.ContainsKey("RelayJoinCode")
+            && currentLobby.Data.ContainsKey(LobbyKeys.RelayJoinCode)
             && !LobbyFeatures.IsHost()) // host already handled this
         {
-            string relayJoinCode = currentLobby.Data["RelayJoinCode"].Value;
+            string relayJoinCode = currentLobby.Data[LobbyKeys.RelayJoinCode].Value;
             if (currentLobby.Data.ContainsKey("CatcherPlayerId"))
             {
                 string catcherPlayerId = currentLobby.Data["CatcherPlayerId"].Value;

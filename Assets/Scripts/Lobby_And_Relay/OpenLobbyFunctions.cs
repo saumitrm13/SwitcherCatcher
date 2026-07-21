@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using TMPro;
 using Unity.Netcode;
+using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
@@ -104,7 +105,28 @@ public class OpenLobbyFunctions : MonoBehaviour
 
             Lobby joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId, options);
             LobbyFeatures.SetCurrentLobby(joinedLobby);
+            bool gameStarted = false;
 
+            if (joinedLobby.Data != null &&
+                joinedLobby.Data.TryGetValue("GameStarted", out DataObject gameStartedData))
+            {
+                bool.TryParse(gameStartedData.Value, out gameStarted);
+            }
+
+            if (gameStarted)
+            {
+                Debug.Log("[Client] Cannot join. Game has already started.");
+
+                await LobbyService.Instance.RemovePlayerAsync(
+                    joinedLobby.Id,
+                    AuthenticationService.Instance.PlayerId);
+
+                LobbyFeatures.SetCurrentLobby(null);
+                joinedLobby = null;
+
+                debugText.text = "Game has already started.";
+                return;
+            }
             // ── NEW: Join relay using code from lobby data ──
             if (joinedLobby.Data != null && joinedLobby.Data.ContainsKey("RelayJoinCode"))
             {

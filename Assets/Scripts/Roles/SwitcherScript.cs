@@ -23,6 +23,7 @@ public class SwitcherScript : NetworkBehaviour
     public static event Action OnSwitcherPoleAssigned;
     public static event Action OnSwitcherPoleAssignedClientSignal;
     public static event Action OnPoleOwnershipChanged;
+  
     public NetworkVariable<bool> isEligibleToStealNet =
     new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     bool serverSignalToSteal = true;
@@ -558,6 +559,8 @@ public class SwitcherScript : NetworkBehaviour
         if (GameSessionData.Instance.HasGameStartedYet)
         {
             DestroyPoleRoutine();
+            StartCoroutine(GameSessionData.Instance.ChangeDeadSwitcherCountCoroutine());
+           
         }
     }
 

@@ -139,8 +139,10 @@ public class LobbyCanvasFunction : MonoBehaviour
             {
                 Data = new Dictionary<string, DataObject>
                 {
-                    { "RelayJoinCode", new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode) }
+                    { LobbyKeys.RelayJoinCode, new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode) },
+                    { LobbyKeys.GameStarted, new DataObject(DataObject.VisibilityOptions.Public,"false") }
                 }
+                
             });
 
             // Refresh lobby reference to include relay code
@@ -221,7 +223,8 @@ public class LobbyCanvasFunction : MonoBehaviour
             {
                 Data = new Dictionary<string, DataObject>
                 {
-                    { "RelayJoinCode", new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode) }
+                    { LobbyKeys.RelayJoinCode, new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode) },
+                    {LobbyKeys.GameStarted, new DataObject(DataObject.VisibilityOptions.Public,"false") }
                 }
             });
 
@@ -281,7 +284,28 @@ public class LobbyCanvasFunction : MonoBehaviour
 
             currentLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, options);
             LobbyFeatures.SetCurrentLobby(currentLobby);
+            bool gameStarted = false;
 
+            if (currentLobby.Data != null &&
+                currentLobby.Data.TryGetValue("GameStarted", out DataObject gameStartedData))
+            {
+                bool.TryParse(gameStartedData.Value, out gameStarted);
+            }
+
+            if (gameStarted)
+            {
+                Debug.Log("[Client] Cannot join. Game has already started.");
+
+                await LobbyService.Instance.RemovePlayerAsync(
+                    currentLobby.Id,
+                    AuthenticationService.Instance.PlayerId);
+
+                LobbyFeatures.SetCurrentLobby(null);
+                currentLobby = null;
+
+                debugText.text = "Game has already started.";
+                return;
+            }
             // ── Join relay using code from lobby data ──
             if (currentLobby.Data != null && currentLobby.Data.ContainsKey("RelayJoinCode"))
             {

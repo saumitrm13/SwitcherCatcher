@@ -67,7 +67,7 @@ public class GameStartManager : NetworkBehaviour
             // ── Subsequent rounds: run the inter-round routine instead ─────────
             NewRoundRoutine();
         }
-        CatcherScript.OnAllSwitchersCaught += OnAllSwitchersCaught;
+        GameSessionData.OnCatcherWon += OnAllSwitchersCaught;
     }
 
     async void OnAllSwitchersCaught()
@@ -245,7 +245,7 @@ public class GameStartManager : NetworkBehaviour
                 { LobbyKeys.GameStarted, new DataObject(DataObject.VisibilityOptions.Public, "false") }
             }
         });
-        CatcherScript.OnAllSwitchersCaught -= OnAllSwitchersCaught;
+        GameSessionData.OnCatcherWon -= OnAllSwitchersCaught;
         Debug.Log("Round has ended. Executing server-side cleanup and notifying clients.");
         if (roundTimerCoroutine != null)
         {
@@ -330,6 +330,6 @@ public class GameStartManager : NetworkBehaviour
             roundTimerCoroutine = null;
 
         }
-        CatcherScript.OnAllSwitchersCaught -= OnAllSwitchersCaught;
+        GameSessionData.OnCatcherWon -= OnAllSwitchersCaught;
     }
 }

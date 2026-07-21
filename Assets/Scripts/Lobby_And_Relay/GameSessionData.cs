@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Netcode;
 using UnityEngine;
 
 public class GameSessionData : MonoBehaviour
@@ -30,8 +32,12 @@ public class GameSessionData : MonoBehaviour
     /// </summary>
     public static event Action OnNewRoundStarted;
 
+    public static event Action OnCatcherWon;
+
     [HideInInspector]
     public int deadSwitchersCountThisRound = 0;
+    [HideInInspector]
+    public bool changingDeadSwitcherCount = false;
 
     void Awake()
     {
@@ -103,5 +109,20 @@ public class GameSessionData : MonoBehaviour
     public static void RaiseNewRoundStarted()
     {
         OnNewRoundStarted?.Invoke();
+    }
+
+    public IEnumerator ChangeDeadSwitcherCountCoroutine()
+    {
+        while (GameSessionData.Instance.changingDeadSwitcherCount)
+        {
+            yield return null;
+        }
+        GameSessionData.Instance.changingDeadSwitcherCount = true;
+        GameSessionData.Instance.deadSwitchersCountThisRound++;
+        GameSessionData.Instance.changingDeadSwitcherCount = false;
+        if (GameSessionData.Instance.deadSwitchersCountThisRound >= NetworkManager.Singleton.ConnectedClients.Count - 1)
+        {
+            OnCatcherWon?.Invoke();
+        }
     }
 }

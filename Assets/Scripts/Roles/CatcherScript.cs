@@ -26,7 +26,7 @@ public class CatcherScript : NetworkBehaviour
     [SerializeField] Vector3 scaleDownValue;
     List<Transform> powerPrefabSpawnTransforms = new List<Transform>();
 
-
+    public static event Action OnAllSwitchersCaught;
     Vector3 magicLocalPosition = new Vector3();
     ClientRpcParams thisClientRpcParams;
     Animator animator;
@@ -153,6 +153,7 @@ public class CatcherScript : NetworkBehaviour
             return;
         }
         ScoreManager.Instance?.AddCatcherCatchScore(OwnerClientId);
+        GameSessionData.Instance.deadSwitchersCountThisRound++;
         // 1. Break alliance first — while pole references are still valid
         var allHandlers = FindObjectsByType<SwitcherRquestHandler>(FindObjectsSortMode.None);
         var caughtHandler = allHandlers.FirstOrDefault(h => h.OwnerClientId == caughtClientId);
@@ -180,6 +181,10 @@ public class CatcherScript : NetworkBehaviour
         Debug.Log("Killing a switcher");
         PlayDeathAnimationClientRpc(clientRpcParams);
         CatcherRoutineAfterCatchingSwitcherClientRpc();
+        if (GameSessionData.Instance.deadSwitchersCountThisRound >= NetworkManager.Singleton.ConnectedClients.Count - 1)
+        {
+            OnAllSwitchersCaught?.Invoke();
+        }
     }
 
     [ClientRpc]

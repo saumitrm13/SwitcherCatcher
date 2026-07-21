@@ -179,8 +179,12 @@ public class SwitcherScript : NetworkBehaviour
                 }
                 else
                 {
-                    triggerCaseText.text = $"Pole Entry Case : Owned pole without resources";
-                    NotifyClientAboutThePoleClientRpc($"You came back...but without resources!", false, clientRpcParams);
+                    if (isCompletingATask.Value && thisSwitcher.getTargetPoleType() != PoleType.None)
+                    {
+                        triggerCaseText.text = $"Pole Entry Case : Owned pole without resources";
+                        NotifyClientAboutThePoleClientRpc($"You came back...but without resources!", false, clientRpcParams);
+                    }
+
                 }
                 thisSwitcher.SetCurrentOccupiedPole(currentPole);
                 currentPole.Occupy();
@@ -241,6 +245,7 @@ public class SwitcherScript : NetworkBehaviour
     {
         Debug.Log(message);
         debugText.text = message;
+        ToastScript.Toast(message);
         if (assignPole)
         {
 

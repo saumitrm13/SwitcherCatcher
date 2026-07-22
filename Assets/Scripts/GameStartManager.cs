@@ -56,7 +56,7 @@ public class GameStartManager : NetworkBehaviour
 
 
             AssignRandomCatcher();
-
+            setUpAllSwitchersForNewRound();
             StartGameForEveryClientClientRpc();
 
             if (roundTimerCoroutine != null) StopCoroutine(roundTimerCoroutine);
@@ -68,19 +68,20 @@ public class GameStartManager : NetworkBehaviour
             NewRoundRoutine();
         }
         GameSessionData.OnCatcherWon += OnAllSwitchersCaught;
+        SwitcherScript.localOwnerInstance.AddGuardToSwitcherClientRpc();
     }
 
     async void OnAllSwitchersCaught()
     {
-       
+
         StartCoroutine(CatcherWinsRoundEndCoroutine());
     }
 
     IEnumerator CatcherWinsRoundEndCoroutine()
-    {   
+    {
 
         yield return new WaitForSeconds(5f);
-      
+
         if (roundTimerCoroutine != null)
         {
             StopCoroutine(roundTimerCoroutine);
@@ -167,21 +168,7 @@ public class GameStartManager : NetworkBehaviour
         Debug.Log($"[GameStartManager] Reset {allPoleScripts.Length} poles to ownerless state.");
 
         // ── 2. Reset every SwitcherScript's server-side state ─────────────────
-        var allSwitchers = FindObjectsByType<SwitcherScript>(FindObjectsSortMode.None);
-        foreach (var sw in allSwitchers)
-        {
-            sw.ownedPoleType.Value = PoleType.None;
-            sw.targetPoleType.Value = PoleType.None;
-            sw.isCompletingATask.Value = false;
-
-            if (sw.thisSwitcher != null)
-                sw.thisSwitcher.ResetForNewRound();
-
-            sw.StopTaskTimer();
-            sw.hasNecessaryResource = false;
-            sw.GetAllPoles();
-        }
-        Debug.Log($"[GameStartManager] Reset {allSwitchers.Length} switcher states.");
+        setUpAllSwitchersForNewRound();
 
         // ── 3. Teleport every player NetworkObject back to the origin ──────────
         // (Already covers the catcher too — ConnectedClients includes everyone.)
@@ -208,6 +195,25 @@ public class GameStartManager : NetworkBehaviour
         roundTimerCoroutine = StartCoroutine(RoundTimerCoroutine());
     }
 
+    void setUpAllSwitchersForNewRound()
+    {
+        var allSwitchers = FindObjectsByType<SwitcherScript>(FindObjectsSortMode.None);
+        foreach (var sw in allSwitchers)
+        {
+            sw.ownedPoleType.Value = PoleType.None;
+            sw.targetPoleType.Value = PoleType.None;
+            sw.isCompletingATask.Value = false;
+
+            if (sw.thisSwitcher != null)
+                sw.thisSwitcher.ResetForNewRound();
+
+            sw.StopTaskTimer();
+            sw.hasNecessaryResource = false;
+            sw.GetAllPoles();
+            sw.AddGuardToSwitcherClientRpc();
+        }
+        Debug.Log($"[GameStartManager] Reset {allSwitchers.Length} switcher states.");
+    }
     /// <summary>
     /// Runs on every machine when a new round (2+) starts.
     /// Clears any client-local state that the server can't reach directly,

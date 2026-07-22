@@ -80,7 +80,7 @@ public class GameStartManager : NetworkBehaviour
     {   
 
         yield return new WaitForSeconds(5f);
-        RoutineAfterRoundEnd();
+      
         if (roundTimerCoroutine != null)
         {
             StopCoroutine(roundTimerCoroutine);

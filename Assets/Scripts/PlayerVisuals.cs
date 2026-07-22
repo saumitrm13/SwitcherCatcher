@@ -12,7 +12,7 @@ public class PlayerVisuals : NetworkBehaviour
     [SerializeField] private Vector3 catcherColliderCentre = new Vector3(0, 0.8f, 0.91f);
     [SerializeField] private Vector3 catcherColliderSize = new Vector3(1, 1.84f, 1.67f);
     [SerializeField] private ParticleSystem[] switcherHitsParticleSystems;
-
+    
     [SerializeField] private Vector3 switcherColliderCentre = new Vector3(0, 0.9f, 0); // TODO: set to your real switcher values
     [SerializeField] private Vector3 switcherColliderSize = new Vector3(1, 1.8f, 1);   // TODO: set to your real switcher values
 

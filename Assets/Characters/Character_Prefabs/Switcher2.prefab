@@ -1565,6 +1565,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: da9b1717f6758ad4b8be5c9a7f1cb15c, type: 3}
+--- !u!114 &831654641296891327 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2313438980969655251, guid: da9b1717f6758ad4b8be5c9a7f1cb15c, type: 3}
+  m_PrefabInstance: {fileID: 3139111210166957676}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1545168267197686007 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4531139480130983579, guid: da9b1717f6758ad4b8be5c9a7f1cb15c, type: 3}
@@ -1611,6 +1622,17 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 7990861608856608771, guid: da9b1717f6758ad4b8be5c9a7f1cb15c, type: 3}
   m_PrefabInstance: {fileID: 3139111210166957676}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &6547042541324066415 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8163787539548694531, guid: da9b1717f6758ad4b8be5c9a7f1cb15c, type: 3}
+  m_PrefabInstance: {fileID: 3139111210166957676}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!224 &8748913489675908915 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 5979161224929329503, guid: da9b1717f6758ad4b8be5c9a7f1cb15c, type: 3}
@@ -2345,7 +2367,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  targetPoleText: {fileID: 0}
+  targetPoleText: {fileID: 831654641296891327}
   isInSafeZone:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
@@ -2357,6 +2379,7 @@ MonoBehaviour:
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 0
   thisSwitcherPointer: {fileID: 8565176392433506332}
+  ownedPoleText: {fileID: 6547042541324066415}
   successVFX: {fileID: 4884347376189634576}
   wrongPoleEntryAttackVFX: {fileID: 8177389817930553069}
   resourceGainVFX: {fileID: 1190315737270166176}

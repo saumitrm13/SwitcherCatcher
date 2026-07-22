@@ -13,7 +13,7 @@ public class SwitcherScript : NetworkBehaviour
 {
     List<PoleScript> Poles;
     TextMeshProUGUI debugText;
-    TextMeshProUGUI ownedPoleText;
+    
     TextMeshProUGUI triggerCaseText;
     public TextMeshProUGUI targetPoleText;
     public static SwitcherScript localOwnerInstance;
@@ -34,6 +34,8 @@ public class SwitcherScript : NetworkBehaviour
     DangerVisuals dangerVisuals;
     ClientRpcParams clientRpcParams = new ClientRpcParams();
     public GameObject thisSwitcherPointer;
+
+    [SerializeField]TextMeshProUGUI ownedPoleText;
     [Header("Particle Systems")]
     [SerializeField] ParticleSystem successVFX;
     [SerializeField] ParticleSystem wrongPoleEntryAttackVFX;
@@ -62,7 +64,7 @@ public class SwitcherScript : NetworkBehaviour
 
         GetAllPoles();
         debugText = GameObject.Find("DebugText").GetComponent<TextMeshProUGUI>();
-        ownedPoleText = GameObject.Find("DebugText3").GetComponent<TextMeshProUGUI>();
+        ownedPoleText = GameObject.Find("OwnedPoleText").GetComponent<TextMeshProUGUI>();
         triggerCaseText = GameObject.Find("TriggerCaseText").GetComponent<TextMeshProUGUI>();
         targetPoleText = GameObject.Find("TargetPoleText").GetComponent<TextMeshProUGUI>();
         clientRpcParams = new ClientRpcParams
@@ -482,7 +484,8 @@ public class SwitcherScript : NetworkBehaviour
 
     [ClientRpc]
     void ChangeClientUIClientRpc(PoleType poleType, ClientRpcParams clientRpcParams = default)
-    {
+    {   
+        Debug.Log($"[SwitcherScript] Changing client UI to show owned pole type: {poleType.ToString()}");
         ownedPoleText.text = $"{poleType.ToString()}";
     }
 

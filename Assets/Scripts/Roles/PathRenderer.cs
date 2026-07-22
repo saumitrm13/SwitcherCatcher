@@ -103,7 +103,7 @@ public class PathRenderer : MonoBehaviour
         if (targetChanged)
         {
             lastKnownTargetType = targetType;
-            switcherScript.targetPoleText.text = targetType.ToString();
+            switcherScript.targetPoleText.text = $"Target Pole : {targetType.ToString()}";
             GameObject poleObj = GameObject.Find(targetType.ToString() + "Pole");
             cachedTargetPosition = poleObj != null ? poleObj.transform.position : Vector3.zero;
         }

@@ -13,7 +13,7 @@ public class SwitcherScript : NetworkBehaviour
 {
     List<PoleScript> Poles;
     TextMeshProUGUI debugText;
-    
+
     TextMeshProUGUI triggerCaseText;
     public TextMeshProUGUI targetPoleText;
     public static SwitcherScript localOwnerInstance;
@@ -23,7 +23,7 @@ public class SwitcherScript : NetworkBehaviour
     public static event Action OnSwitcherPoleAssigned;
     public static event Action OnSwitcherPoleAssignedClientSignal;
     public static event Action OnPoleOwnershipChanged;
-  
+
     public NetworkVariable<bool> isEligibleToStealNet =
     new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     bool serverSignalToSteal = true;
@@ -33,18 +33,20 @@ public class SwitcherScript : NetworkBehaviour
     Transform currentColliderTransform;
     DangerVisuals dangerVisuals;
     ClientRpcParams clientRpcParams = new ClientRpcParams();
+    Coroutine addGuardCoroutine;
     public GameObject thisSwitcherPointer;
 
-    [SerializeField]TextMeshProUGUI ownedPoleText;
+    [SerializeField] TextMeshProUGUI ownedPoleText;
     [Header("Particle Systems")]
     [SerializeField] ParticleSystem successVFX;
     [SerializeField] ParticleSystem wrongPoleEntryAttackVFX;
     [SerializeField] ParticleSystem resourceGainVFX;
     [SerializeField] GameObject throwableMagic;
-
+    [SerializeField] GameObject guardAroundASwitcher;
 
     [Header("Task Timer")]
     [SerializeField] float taskTimeLimit = 30f;   // seconds   tweak in Inspector
+    [SerializeField] float timeGivenToGetAPole = 10f; // seconds to wait before removing guard
     [Header("Resources Visuals")]
     [SerializeField] GameObject resourceVisualsParent; // parent object that holds the resource visuals
 
@@ -244,6 +246,38 @@ public class SwitcherScript : NetworkBehaviour
 
 
     [ClientRpc]
+    public void AddGuardToSwitcherClientRpc()
+    {
+        addGuardCoroutine = StartCoroutine(AddGuardToSwitcherCoroutine());
+    }
+
+    [ClientRpc]
+    public void RemoveGuardClientRpc()
+    {
+        if (addGuardCoroutine != null)
+        {
+            StopCoroutine(addGuardCoroutine);
+            addGuardCoroutine = null;
+        }
+        guardAroundASwitcher.SetActive(false);
+        if (IsServer)
+        {
+            isInSafeZone.Value = false;
+        }
+    }
+    IEnumerator AddGuardToSwitcherCoroutine()
+    {
+        guardAroundASwitcher.SetActive(true);
+        yield return new WaitForSeconds(timeGivenToGetAPole);
+        guardAroundASwitcher.SetActive(false);
+
+        if (IsServer)
+        {
+            isInSafeZone.Value = false;
+        }
+    }
+
+    [ClientRpc]
     void NotifyClientAboutThePoleClientRpc(String message, bool assignPole = false, ClientRpcParams clientRpcParams = default)
     {
         Debug.Log(message);
@@ -277,7 +311,7 @@ public class SwitcherScript : NetworkBehaviour
             ChangeClientUIClientRpc(currentPole.Type, clientRpcParams);
             UpdateStealEligibility();
             NotifyClientAboutThePoleClientRpc("Great!... You own a Pole", true, clientRpcParams);
-
+            RemoveGuardClientRpc();
             PlaySuccessVFXClientRpc(clientRpcParams);
 
         }
@@ -484,9 +518,9 @@ public class SwitcherScript : NetworkBehaviour
 
     [ClientRpc]
     void ChangeClientUIClientRpc(PoleType poleType, ClientRpcParams clientRpcParams = default)
-    {   
+    {
         Debug.Log($"[SwitcherScript] Changing client UI to show owned pole type: {poleType.ToString()}");
-        ownedPoleText.text = $"{poleType.ToString()}";
+        ownedPoleText.text = $"Your pole : {poleType.ToString()}";
     }
 
 
@@ -563,7 +597,7 @@ public class SwitcherScript : NetworkBehaviour
         {
             DestroyPoleRoutine();
             StartCoroutine(GameSessionData.Instance.ChangeDeadSwitcherCountCoroutine());
-           
+
         }
     }
 

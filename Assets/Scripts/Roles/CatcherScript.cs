@@ -26,7 +26,7 @@ public class CatcherScript : NetworkBehaviour
     [SerializeField] Vector3 scaleDownValue;
     List<Transform> powerPrefabSpawnTransforms = new List<Transform>();
 
-    
+    public const string roundStartTextCatcher = "You are the catcher! Try to catch all switchers before the round ends!";
     Vector3 magicLocalPosition = new Vector3();
     ClientRpcParams thisClientRpcParams;
     Animator animator;
@@ -45,6 +45,10 @@ public class CatcherScript : NetworkBehaviour
         magicLocalPosition = magicInCatcherHand.transform.localPosition;
 
 
+    }
+    private void OnEnable()
+    {
+        Netcode_Functions.Instance?.ShowToastToAClientRpc(roundStartTextCatcher,thisClientRpcParams);
     }
 
     private void Start()
@@ -114,6 +118,10 @@ public class CatcherScript : NetworkBehaviour
             Debug.Log($"Catcher is : {NetworkManager.Singleton.LocalClientId}");
             HandlePlayerDeathServerRpc(deadPlayer.OwnerClientId);
         }
+        //else
+        //{
+        //    Netcode_Functions.Instance?.ShowToastToAClientRpc("Can't catch this one! Try to catch someone without shield & outside their pole.", thisClientRpcParams);
+        //}
 
         //var deadPlayer = other.GetComponent<AnimationAndMovementControllerNetwork>();
         //Debug.Log($"Dead player is : {deadPlayer.NetworkObjectId}");
@@ -196,11 +204,13 @@ public class CatcherScript : NetworkBehaviour
             localPlayerObject.GetComponent<AnimationAndMovementControllerNetwork>().enabled = false;
             //localPlayerObject.GetComponent<Animator>().SetTrigger("Die");
             StartCoroutine(waitAndPlayDeathAnimation(localPlayerObject));
+            ToastScript.Toast("You have been caught! You are now dead.");
         }
         magicInCatcherHand.SetActive(true);
     }
     IEnumerator waitAndPlayDeathAnimation(NetworkObject localPlayerObject)
-    {
+    {   
+        
         yield return new WaitForSeconds(1.5f);
         localPlayerObject.GetComponent<Animator>().SetTrigger("Die");
     }
@@ -310,6 +320,7 @@ public class CatcherScript : NetworkBehaviour
         powerDrainCoroutine = null;
         currentCatcherPowerValue.Value = 0;
         Debug.Log("Catcher has powers: " + hasPowers.Value);
+        Netcode_Functions.Instance?.ShowToastToAClientRpc("You have drained your powers!!! Go to your power source and regain them.", thisClientRpcParams);
     }
 
     IEnumerator PowerRechargeCoroutine()
@@ -352,5 +363,7 @@ public class CatcherScript : NetworkBehaviour
 
     }
 
+    
+    
 
 }

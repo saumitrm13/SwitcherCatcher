@@ -9,7 +9,7 @@ public class Switcher : Role
     private SwitcherScript switcherScriptRef = null;
     public bool isCurrentlyAGuest = false;
     private bool isDead = false;
-    public  Switcher(ulong clientID, SwitcherScript switcherScriptRef)
+    public Switcher(ulong clientID, SwitcherScript switcherScriptRef)
     {
         RoleType = RoleType.Switcher;
         this.clientID = clientID;
@@ -24,32 +24,36 @@ public class Switcher : Role
     }
 
     public bool OwnsAPole()
-    {   
+    {
         return OwnedPole != null;
     }
 
-    public PoleType getOwnedPoleType() { 
-        return OwnedPole.Type;   
+    public PoleType getOwnedPoleType()
+    {
+        return OwnedPole.Type;
     }
     public Pole getOwnedPole()
     {
         return OwnedPole;
     }
-    public PoleType getTargetPoleType() { 
+    public PoleType getTargetPoleType()
+    {
+        if (TargetPole == null) return PoleType.None;
         return TargetPole.Type;
     }
 
     public void AssignTargetPole(Pole target)
-    {   
-         TargetPole = target;
+    {
+        TargetPole = target;
     }
 
     public bool NeedsResources()
     {
-        return TargetPole != null;  
+        return TargetPole != null;
     }
 
-    public ulong getClientID() { 
+    public ulong getClientID()
+    {
         return clientID;
     }
 

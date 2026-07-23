@@ -82,4 +82,10 @@ public class Netcode_Functions : NetworkBehaviour
             SyncPlayerNameClientRpc(kvp.Key, kvp.Value, lobbyId, targetParams);
         }
     }
+
+    [ClientRpc]
+    public void ShowToastToAClientRpc(string message, ClientRpcParams clientRpcParams = default)
+    {
+        ToastScript.Toast(message);
+    }
 }

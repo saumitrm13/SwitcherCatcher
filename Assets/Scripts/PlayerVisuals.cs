@@ -16,6 +16,7 @@ public class PlayerVisuals : NetworkBehaviour
     [SerializeField] private Vector3 switcherColliderCentre = new Vector3(0, 0.9f, 0); // TODO: set to your real switcher values
     [SerializeField] private Vector3 switcherColliderSize = new Vector3(1, 1.8f, 1);   // TODO: set to your real switcher values
 
+   
     // Server writes, all clients read automatically
     private NetworkVariable<bool> isCatcher = new NetworkVariable<bool>(
         false,
@@ -62,6 +63,7 @@ public class PlayerVisuals : NetworkBehaviour
             collider.center = catcherColliderCentre;
             collider.size = catcherColliderSize;
             gameObject.tag = "Catcher";
+            
         }
         else
         {

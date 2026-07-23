@@ -26,10 +26,13 @@ public class GameStartManager : NetworkBehaviour
     public static event Action OnNewRoundStarted;
     public static event Action OnNewRoundStartedClientSignal;
 
+    public static event Action<float> OnRoundTimerStarted;   // duration in seconds
+    public static event Action<float> OnRoundTimerCorrection; // remaining seconds, server-authoritative
 
+    public const string roundStartTextSwitcher = "You are safe from the catcher only till the shield around you is active. Try to own a pole before that";
+    
     Coroutine roundTimerCoroutine;
-
-
+    Coroutine halfTimeCorrectionCoroutine;
 
     // Populated externally when players connect (Auth ID → Netcode Client ID)
     // e.g. fill this from your player spawn manager on client connect
@@ -57,7 +60,7 @@ public class GameStartManager : NetworkBehaviour
 
             AssignRandomCatcher();
             setUpAllSwitchersForNewRound();
-            StartGameForEveryClientClientRpc();
+            StartGameForEveryClientClientRpc(TimePerRound);
 
             if (roundTimerCoroutine != null) StopCoroutine(roundTimerCoroutine);
             roundTimerCoroutine = StartCoroutine(RoundTimerCoroutine());
@@ -189,7 +192,7 @@ public class GameStartManager : NetworkBehaviour
         ResetForNewRoundClientRpc();
 
         // ── 5. Re-use the normal game-start broadcast and restart the timer ────
-        StartGameForEveryClientClientRpc();
+        StartGameForEveryClientClientRpc(TimePerRound);
 
         if (roundTimerCoroutine != null) StopCoroutine(roundTimerCoroutine);
         roundTimerCoroutine = StartCoroutine(RoundTimerCoroutine());
@@ -226,6 +229,7 @@ public class GameStartManager : NetworkBehaviour
         // (hasNecessaryResource is a plain bool, not a NetworkVariable)
         if (SwitcherScript.localOwnerInstance != null)
             SwitcherScript.localOwnerInstance.hasNecessaryResource = false;
+        
 
         // Fire the global new-round event so any listener (UI, VFX, audio…) can react
         GameSessionData.RaiseNewRoundStarted();
@@ -235,10 +239,26 @@ public class GameStartManager : NetworkBehaviour
 
     IEnumerator RoundTimerCoroutine()
     {
-        yield return new WaitForSeconds(TimePerRound);
+        float halfTime = TimePerRound / 2f;
+        yield return new WaitForSeconds(halfTime);
+
+        // Correction checkpoint: tell every client exactly how much time the
+        // server thinks is left, so any client-side drift gets fixed.
+        float serverRemaining = TimePerRound - halfTime;
+        SendTimerCorrectionClientRpc(serverRemaining);
+
+        yield return new WaitForSeconds(TimePerRound - halfTime);
+
         roundTimerCoroutine = null;
         Debug.Log($"[GameStartManager] Round timer expired after {TimePerRound} seconds.");
         RoutineAfterRoundEnd();
+    }
+
+
+    [ClientRpc]
+    void SendTimerCorrectionClientRpc(float serverRemainingSeconds)
+    {
+        OnRoundTimerCorrection?.Invoke(serverRemainingSeconds);
     }
 
     public async void RoutineAfterRoundEnd()
@@ -278,9 +298,10 @@ public class GameStartManager : NetworkBehaviour
     }
 
     [ClientRpc]
-    void StartGameForEveryClientClientRpc()
+    void StartGameForEveryClientClientRpc(float roundDuration)
     {
         OnNewRoundStartedClientSignal?.Invoke();
+        OnRoundTimerStarted?.Invoke(roundDuration);
         GameSessionData.Instance.HasGameStartedYet = true;
         CatcherPowerSource.SetActive(true);
         boundariesBeforeGameStart.SetActive(false);
@@ -291,8 +312,11 @@ public class GameStartManager : NetworkBehaviour
         {
             var movementController = SwitcherScript.localOwnerInstance.gameObject.GetComponent<AnimationAndMovementControllerNetwork>();
             movementController.enabled = true;
-
-
+            if(SwitcherScript.localOwnerInstance.isActiveAndEnabled)
+            {
+                ToastScript.Toast(roundStartTextSwitcher);
+            }
+            
             movementController.RevivePlayerMovements();
             debugText.text = "[GameStartManager] Reviving dead switcher for new round.";
 
@@ -300,6 +324,7 @@ public class GameStartManager : NetworkBehaviour
         else if (CatcherScript.localOwnerInstance != null)
         {
             CatcherScript.localOwnerInstance.GetComponent<AnimationAndMovementControllerNetwork>().enabled = true;
+           
         }
 
     }

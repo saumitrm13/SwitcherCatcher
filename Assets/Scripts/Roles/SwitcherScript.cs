@@ -9,6 +9,7 @@ using System.Collections;
 using Unity.VisualScripting;
 using System.Linq;
 using Unity.Networking.Transport.Error;
+
 public class SwitcherScript : NetworkBehaviour
 {
     List<PoleScript> Poles;
@@ -35,6 +36,7 @@ public class SwitcherScript : NetworkBehaviour
     ClientRpcParams clientRpcParams = new ClientRpcParams();
     Coroutine addGuardCoroutine;
     public GameObject thisSwitcherPointer;
+    [SerializeField] TextMeshProUGUI playerText;
 
     [SerializeField] TextMeshProUGUI ownedPoleText;
     [Header("Particle Systems")]
@@ -90,6 +92,8 @@ public class SwitcherScript : NetworkBehaviour
         {
             localOwnerInstance = this;
         }
+
+        StartCoroutine(SetPlayerNameTextWhenReady());
     }
 
     private void SwitcherScriptRoutineAfterRoundEnd()
@@ -113,6 +117,27 @@ public class SwitcherScript : NetworkBehaviour
     private void OnCursedPoleChanged(PoleType oldValue, PoleType newValue)
     {
         UpdateStealEligibility();
+    }
+
+    IEnumerator SetPlayerNameTextWhenReady()
+    {
+        // Names arrive via RegisterPlayerNameServerRpc/SyncPlayerNameClientRpc,
+        // which may not have run yet at this exact frame — poll briefly.
+        float timeout = 5f;
+        while (timeout > 0f)
+        {
+            if (GameSessionData.Instance != null &&
+                GameSessionData.Instance.ClientIdToName.TryGetValue(OwnerClientId, out string name) &&
+                !string.IsNullOrEmpty(name))
+            {
+                playerText.text = name;
+                yield break;
+            }
+            timeout -= Time.deltaTime;
+            yield return null;
+        }
+
+        playerText.text = $"Player {OwnerClientId}"; // fallback, matches ScoreboardUI's fallback
     }
     void Start()
     {

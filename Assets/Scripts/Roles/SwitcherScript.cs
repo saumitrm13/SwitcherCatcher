@@ -37,6 +37,7 @@ public class SwitcherScript : NetworkBehaviour
     Coroutine addGuardCoroutine;
     public GameObject thisSwitcherPointer;
     [SerializeField] TextMeshProUGUI playerText;
+    [SerializeField] GameObject playerNamePanel;
 
     [SerializeField] TextMeshProUGUI ownedPoleText;
     [Header("Particle Systems")]
@@ -91,6 +92,7 @@ public class SwitcherScript : NetworkBehaviour
         else
         {
             localOwnerInstance = this;
+            playerNamePanel.SetActive(false);
         }
 
         StartCoroutine(SetPlayerNameTextWhenReady());

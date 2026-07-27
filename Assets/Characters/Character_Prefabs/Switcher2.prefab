@@ -697,7 +697,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2748401396319256865, guid: e5bf7539bb3b8ba40985dc688af0f460, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.61
+      value: 0.02
       objectReference: {fileID: 0}
     - target: {fileID: 2748401396319256865, guid: e5bf7539bb3b8ba40985dc688af0f460, type: 3}
       propertyPath: m_LocalRotation.w
@@ -713,7 +713,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2748401396319256865, guid: e5bf7539bb3b8ba40985dc688af0f460, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 1
+      value: 2.04
       objectReference: {fileID: 0}
     - target: {fileID: 2748401396319256865, guid: e5bf7539bb3b8ba40985dc688af0f460, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
@@ -899,6 +899,11 @@ RectTransform:
 --- !u!1 &8565176392433506332 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8609457506076339140, guid: e5bf7539bb3b8ba40985dc688af0f460, type: 3}
+  m_PrefabInstance: {fileID: 119188644539904984}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8617771962881526748 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8520538366558631940, guid: e5bf7539bb3b8ba40985dc688af0f460, type: 3}
   m_PrefabInstance: {fileID: 119188644539904984}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &532924497412761670
@@ -2596,6 +2601,7 @@ MonoBehaviour:
     m_InternalValue: 0
   thisSwitcherPointer: {fileID: 8565176392433506332}
   playerText: {fileID: 4336963335313088661}
+  playerNamePanel: {fileID: 8617771962881526748}
   ownedPoleText: {fileID: 6547042541324066415}
   successVFX: {fileID: 4884347376189634576}
   wrongPoleEntryAttackVFX: {fileID: 8177389817930553069}

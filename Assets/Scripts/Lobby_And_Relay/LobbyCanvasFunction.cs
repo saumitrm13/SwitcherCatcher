@@ -107,7 +107,8 @@ public class LobbyCanvasFunction : MonoBehaviour
             Debug.LogError("Lobby name input field is not assigned or empty");
             return;
         }
-
+        const int totalSteps = 6;
+        LoadingProgress.StartFlow("Creating private lobby", totalSteps);
         try
         {
             string lobbyName = privateLobbyNameInputField.text;
@@ -120,7 +121,7 @@ public class LobbyCanvasFunction : MonoBehaviour
 
             currentLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayersInALobby, options);
             LobbyFeatures.SetCurrentLobby(currentLobby);
-
+            LoadingProgress.SetStep(1, totalSteps, "Creating private lobby");
             // ── Create relay immediately on lobby creation ──
             Debug.Log("[Host] Creating relay allocation for private lobby...");
             string relayJoinCode = await RelayManager.CreateRelayAndGetJoinCode(maxPlayersInALobby);
@@ -131,9 +132,10 @@ public class LobbyCanvasFunction : MonoBehaviour
                 LobbyFeatures.SetCurrentLobby(null);
                 currentLobby = null;
                 debugText.text = "Failed to create relay";
+                LoadingProgress.FailFlow("Failed to create relay");
                 return;
             }
-
+            LoadingProgress.SetStep(2, totalSteps, "Relay allocated");
             // Store relay code in lobby data
             await LobbyService.Instance.UpdateLobbyAsync(currentLobby.Id, new UpdateLobbyOptions
             {
@@ -142,20 +144,22 @@ public class LobbyCanvasFunction : MonoBehaviour
                     { LobbyKeys.RelayJoinCode, new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode) },
                     { LobbyKeys.GameStarted, new DataObject(DataObject.VisibilityOptions.Public,"false") }
                 }
-                
-            });
 
+            });
+            LoadingProgress.SetStep(3, totalSteps, "Lobby data updated");
             // Refresh lobby reference to include relay code
+
             currentLobby = await LobbyService.Instance.GetLobbyAsync(currentLobby.Id);
             LobbyFeatures.SetCurrentLobby(currentLobby);
+            LoadingProgress.SetStep(4, totalSteps, "Lobby synced");
 
             // Subscribe once, right after the lobby is created
             await LobbyFeatures.SubscribeToCurrentLobbyEvents();
-
+            LoadingProgress.SetStep(5, totalSteps, "Subscribed to lobby events");
             // ── Start the host ──
             Debug.Log("[Host] Starting NetworkManager as host...");
             GameSessionData.Instance.IsRelayHost = true;
-
+            LoadingProgress.SetStep(6, totalSteps, "Host started");
             //if (LobbyDataContainer == null)
             //{
             //    Debug.LogError("[Host] LobbyDataContainer not assigned!");
@@ -171,11 +175,12 @@ public class LobbyCanvasFunction : MonoBehaviour
             NetworkManager.Singleton.StartHost();
             boundariesBeforeGameStart.SetActive(true);
             ActivatePanel(currentLobbyInfoPanel);
-
+            LoadingProgress.FinishFlow();
             Debug.Log($"[Host] Private Lobby created and host started: {lobbyName}, Relay Code: {relayJoinCode}");
         }
         catch (Exception e)
         {
+            LoadingProgress.FailFlow("Failed to create lobby");
             Debug.LogError("Failed to create lobby: " + e.Message);
             debugText.text = e.Message;
         }
@@ -191,7 +196,8 @@ public class LobbyCanvasFunction : MonoBehaviour
             Debug.LogError("Lobby name input field is not assigned or empty");
             return;
         }
-
+        const int totalSteps = 6;
+        LoadingProgress.StartFlow("Creating public lobby", totalSteps);
         try
         {
             string lobbyName = publicLobbyNameInputField.text;
@@ -204,7 +210,7 @@ public class LobbyCanvasFunction : MonoBehaviour
 
             currentLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayersInALobby, options);
             LobbyFeatures.SetCurrentLobby(currentLobby);
-
+            LoadingProgress.SetStep(1, totalSteps, "Creating public lobby");
             // ── Create relay immediately on lobby creation ──
             Debug.Log("[Host] Creating relay allocation for public lobby...");
             string relayJoinCode = await RelayManager.CreateRelayAndGetJoinCode(maxPlayersInALobby);
@@ -215,9 +221,10 @@ public class LobbyCanvasFunction : MonoBehaviour
                 LobbyFeatures.SetCurrentLobby(null);
                 currentLobby = null;
                 debugText.text = "Failed to create relay";
+                LoadingProgress.FailFlow("Failed to create relay");
                 return;
             }
-
+            LoadingProgress.SetStep(2, totalSteps, "Relay allocated");
             // Store relay code in lobby data
             await LobbyService.Instance.UpdateLobbyAsync(currentLobby.Id, new UpdateLobbyOptions
             {
@@ -227,17 +234,18 @@ public class LobbyCanvasFunction : MonoBehaviour
                     {LobbyKeys.GameStarted, new DataObject(DataObject.VisibilityOptions.Public,"false") }
                 }
             });
-
+            LoadingProgress.SetStep(3, totalSteps, "Lobby data updated");
             // Refresh lobby reference to include relay code
             currentLobby = await LobbyService.Instance.GetLobbyAsync(currentLobby.Id);
             LobbyFeatures.SetCurrentLobby(currentLobby);
-
+            LoadingProgress.SetStep(4, totalSteps, "Lobby synced");
             // Subscribe once, right after the lobby is created
             await LobbyFeatures.SubscribeToCurrentLobbyEvents();
-
+            LoadingProgress.SetStep(5, totalSteps, "Subscribed to lobby events");
             // ── Start the host ──
             Debug.Log("[Host] Starting NetworkManager as host...");
             GameSessionData.Instance.IsRelayHost = true;
+
 
             //if (LobbyDataContainer == null)
             //{
@@ -253,12 +261,16 @@ public class LobbyCanvasFunction : MonoBehaviour
             await LobbyFeatures.EnsureNetworkManagerShutdownComplete();
             NetworkManager.Singleton.StartHost();
             boundariesBeforeGameStart.SetActive(true);
+            LoadingProgress.SetStep(6, totalSteps, "Host started");
             ActivatePanel(currentLobbyInfoPanel);
             Debug.Log($"[Host] Public Lobby created and host started: {lobbyName}, Relay Code: {relayJoinCode}");
+            LoadingProgress.FinishFlow();
         }
         catch (Exception e)
         {
             Debug.LogError("Failed to create lobby: " + e.Message);
+
+            LoadingProgress.FailFlow("Failed to create lobby");
             debugText.text = e.Message;
         }
     }
@@ -274,9 +286,13 @@ public class LobbyCanvasFunction : MonoBehaviour
             return;
         }
 
+        const int totalSteps = 6;
+        LoadingProgress.StartFlow("Joining lobby", totalSteps);
+
         try
         {
             string lobbyCode = lobbyJoinCodeInputField.text;
+
             JoinLobbyByCodeOptions options = new JoinLobbyByCodeOptions
             {
                 Player = BuildPlayerWithName(),
@@ -284,8 +300,9 @@ public class LobbyCanvasFunction : MonoBehaviour
 
             currentLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, options);
             LobbyFeatures.SetCurrentLobby(currentLobby);
-            bool gameStarted = false;
+            LoadingProgress.SetStep(1, totalSteps, $"Joining lobby");
 
+            bool gameStarted = false;
             if (currentLobby.Data != null &&
                 currentLobby.Data.TryGetValue("GameStarted", out DataObject gameStartedData))
             {
@@ -304,8 +321,13 @@ public class LobbyCanvasFunction : MonoBehaviour
                 currentLobby = null;
 
                 debugText.text = "Game has already started.";
+                LoadingProgress.FailFlow("This lobby's game has already started.");
+                
                 return;
             }
+
+            LoadingProgress.SetStep(2, totalSteps, "Lobby validated");
+
             // ── Join relay using code from lobby data ──
             if (currentLobby.Data != null && currentLobby.Data.ContainsKey("RelayJoinCode"))
             {
@@ -315,39 +337,42 @@ public class LobbyCanvasFunction : MonoBehaviour
                 GameSessionData.Instance.IsRelayHost = false;
                 await RelayManager.JoinRelay(relayJoinCode);
 
-                // Hide lobby UI and activate game session
-                //if (LobbyDataContainer == null)
-                //{
-                //    Debug.LogError("[Client] LobbyDataContainer not assigned!");
-                //    return;
-                //}
+                LoadingProgress.SetStep(3, totalSteps, "Connected to relay");
 
-                //LobbyDataContainer.SetActive(false);
-                //if (GameSessionObjects != null)
-                //    GameSessionObjects.SetActive(true);
-
-                // Start as client
                 Debug.Log("[Client] Starting NetworkManager as client...");
+
                 await LobbyFeatures.EnsureNetworkManagerShutdownComplete();
+
+                LoadingProgress.SetStep(4, totalSteps, "Network ready");
+
                 NetworkManager.Singleton.StartClient();
                 boundariesBeforeGameStart.SetActive(true);
+
+                LoadingProgress.SetStep(5, totalSteps, "Client started");
             }
             else
             {
                 Debug.LogWarning("[Client] No relay code found in lobby data");
                 debugText.text = "Failed to join lobby - relay not initialized";
+                LoadingProgress.FailFlow("Failed to join the lobby");
                 return;
             }
 
             // Subscribe once, right after joining
             await LobbyFeatures.SubscribeToCurrentLobbyEvents();
+            LoadingProgress.SetStep(6, totalSteps, "Subscribed to lobby events");
+
+            ActivatePanel(currentLobbyInfoPanel);
 
             Debug.Log($"[Client] Joined lobby with code: {lobbyCode}");
+
+            LoadingProgress.FinishFlow();
         }
         catch (Exception e)
         {
             Debug.LogError("Failed to join lobby: " + e.Message);
             debugText.text = e.Message;
+            LoadingProgress.FailFlow("Failed to join the lobby");
         }
     }
 

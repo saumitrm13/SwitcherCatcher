@@ -1,3 +1,4 @@
+using Mono.Cecil.Cil;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -96,6 +97,9 @@ public class OpenLobbyFunctions : MonoBehaviour
         if (!lobbyCanvasFunction.HasValidPlayerName())
             return;
 
+        const int totalSteps = 6;
+        LoadingProgress.StartFlow("Joining lobby...", totalSteps);
+
         try
         {
             JoinLobbyByIdOptions options = new JoinLobbyByIdOptions
@@ -105,6 +109,8 @@ public class OpenLobbyFunctions : MonoBehaviour
 
             Lobby joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId, options);
             LobbyFeatures.SetCurrentLobby(joinedLobby);
+            LoadingProgress.SetStep(1, totalSteps, "Joining lobby");
+
             bool gameStarted = false;
 
             if (joinedLobby.Data != null &&
@@ -125,9 +131,13 @@ public class OpenLobbyFunctions : MonoBehaviour
                 joinedLobby = null;
 
                 debugText.text = "Game has already started.";
+                LoadingProgress.FailFlow("This lobby's game has already started.");
                 return;
             }
-            // ── NEW: Join relay using code from lobby data ──
+
+            LoadingProgress.SetStep(2, totalSteps, "Lobby validated");
+
+            // ── Join relay using code from lobby data ──
             if (joinedLobby.Data != null && joinedLobby.Data.ContainsKey("RelayJoinCode"))
             {
                 string relayJoinCode = joinedLobby.Data["RelayJoinCode"].Value;
@@ -135,26 +145,44 @@ public class OpenLobbyFunctions : MonoBehaviour
 
                 GameSessionData.Instance.IsRelayHost = false;
                 await RelayManager.JoinRelay(relayJoinCode);
+
+                LoadingProgress.SetStep(3, totalSteps, "Connected to relay");
+
                 Debug.Log("[Client] Starting NetworkManager as client...");
+
                 await LobbyFeatures.EnsureNetworkManagerShutdownComplete();
+
+                LoadingProgress.SetStep(4, totalSteps, "Network ready");
+
                 NetworkManager.Singleton.StartClient();
                 boundariesBeforeGameStart.SetActive(true);
+
+                LoadingProgress.SetStep(5, totalSteps, "Client started");
             }
             else
             {
                 Debug.LogWarning("[Client] No relay code found in lobby data");
+                debugText.text = "Failed to join lobby - relay not initialized";
+                LoadingProgress.FailFlow("Failed to join the lobby");
+                return;
             }
 
             // Subscribe once, right after joining by ID.
             await LobbyFeatures.SubscribeToCurrentLobbyEvents();
+            LoadingProgress.SetStep(6, totalSteps, "Subscribed to lobby events");
 
             lobbyCanvasFunction.ActivatePanel(currentLobbyInfoPanel);
+
             Debug.Log($"[Client] Joined lobby by ID: {lobbyId}");
+
+            LoadingProgress.FinishFlow();
         }
         catch (Exception e)
         {
             debugText.text = "Join lobby exception: " + e.Message;
             Debug.LogError($"Join lobby exception: {e.Message}");
+            LoadingProgress.FailFlow("Failed to join the lobby");
+            
         }
     }
 }

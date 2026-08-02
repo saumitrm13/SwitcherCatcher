@@ -2608,7 +2608,7 @@ MonoBehaviour:
   resourceGainVFX: {fileID: 1190315737270166176}
   throwableMagic: {fileID: 8705083216432843755}
   guardAroundASwitcher: {fileID: 6066631494228876947}
-  taskTimeLimit: 20
+  taskTimeLimit: 80
   timeGivenToGetAPole: 10
   resourceVisualsParent: {fileID: 8639399826084888909}
   ownedPoleType:
@@ -2657,7 +2657,7 @@ MonoBehaviour:
   catcherCanvas: {fileID: 5423567606001672164}
   magicInCatcherHand: {fileID: 317505152827923748}
   movementControllerNetwork: {fileID: 5663032435374993758}
-  powerDuration: 400
+  powerDuration: 40
   powerRechargeDuration: 5
   powerSourcePrefab: {fileID: 1758504048463491537, guid: df106adb09feddf45926ee43224faa9a, type: 3}
   scaleDownTime: 0.3

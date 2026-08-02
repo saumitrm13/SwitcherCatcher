@@ -224,7 +224,8 @@ public class SwitcherScript : NetworkBehaviour
                 return;
             }
             else if (thisSwitcher.getTargetPoleType() != currentPole.Type)
-            {
+            {   
+                isInSafeZone.Value = false;
                 InvalidPoleEntryRoutineClientRpc(clientRpcParams);
             }
             else

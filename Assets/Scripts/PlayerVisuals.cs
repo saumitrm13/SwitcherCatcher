@@ -63,13 +63,15 @@ public class PlayerVisuals : NetworkBehaviour
             collider.center = catcherColliderCentre;
             collider.size = catcherColliderSize;
             gameObject.tag = "Catcher";
-            
+            GetComponent<AnimationAndMovementControllerNetwork>().movementSpeed = 3.7f; // adjust speed for catcher if needed
+
         }
         else
         {
             collider.center = switcherColliderCentre;
             collider.size = switcherColliderSize;
             gameObject.tag = "Switcher"; // match whatever tag your switcher prefab normally uses
+            GetComponent<AnimationAndMovementControllerNetwork>().movementSpeed = 3f;
         }
     }
 

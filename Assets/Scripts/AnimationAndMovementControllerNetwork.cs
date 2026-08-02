@@ -17,7 +17,7 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
     Vector3 currentRunMovement;
     Vector3 _cameraRelativeMovement;
     [SerializeField] float rotationFactorPerFrame = 15.0f;
-    [SerializeField] float movementSpeed = 5f;
+    [SerializeField]public float movementSpeed = 5f;
     //[SerializeField] GameObject throwablePrefab;
     bool isMovementPressed;
     bool isRunPressed;

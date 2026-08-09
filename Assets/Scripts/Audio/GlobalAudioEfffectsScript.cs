@@ -7,7 +7,8 @@ public class GlobalAudioEfffectsScript : MonoBehaviour
 
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip clickClip;
-
+    public AudioSource dangerVisualsAudioSource;
+    public AudioClip throwableMagicLaunchAudioClip;
     private void Awake()
     {
         if (Instance != null) { Destroy(gameObject); return; }

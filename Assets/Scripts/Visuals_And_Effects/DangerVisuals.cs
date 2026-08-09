@@ -34,7 +34,7 @@ public class DangerVisuals : MonoBehaviour
     public GameObject problemSolvedVFX;
     public Transform anchorForThrowableMagic;
     public Vector3 localPositionForExplosionVFX = new Vector3(0, 0, 0.0058f);
-
+   
     static ParticleSystem explosionVFX;
     CinemachineCamera _characterFLCam;
     Transform _originalTargetTransformForCharacterFLCam;
@@ -175,6 +175,7 @@ public class DangerVisuals : MonoBehaviour
             _throwableMagic.SetActive(true);
             _throwableMagic.transform.SetParent(anchorForThrowableMagic);
             _characterFLCam.Target.TrackingTarget = _throwableMagic.transform;
+            GlobalAudioEfffectsScript.Instance.dangerVisualsAudioSource.PlayOneShot(GlobalAudioEfffectsScript.Instance.throwableMagicLaunchAudioClip);
             anchorForThrowableMagic.DOMove(miniCatcherOnTopOfTheTower.transform.position, 1.5f).OnComplete(() =>
             {
                 ShakeCam(true);

@@ -3,8 +3,8 @@ A fast-paced multiplayer game built in Unity where players take on one of two ro
 
 Gameplay Overview
 One player is assigned the Catcher role at the start of each session. The rest are Switchers, each owning one of the coloured poles scattered across the map.
-The Catcher selects a cursed pole — the pole whose owner is in danger. The cursed pole's Switcher must race to a target pole to gather resources and return home before a timer runs out, or their pole explodes and they're eliminated. Meanwhile, the Catcher chases Switchers who are outside their safe zones and tags them out.
-Switchers can also form alliances with other Switchers, snatch unoccupied poles, and steal poles from rivals. A NavMesh-powered arrow path guides each Switcher toward their current target pole.
+The mini catcher arrives on top of every pole — the pole whose owner is in danger. The pole's owner-switcher must race to a target pole to gather resources and return home before a timer runs out, or their pole explodes and they're eliminated. Meanwhile, the Catcher chases Switchers who are outside their safe zones and tags them out.
+Switchers can also form alliances with other Switchers, snatch unoccupied poles, and steal poles from rivals A NavMesh-powered arrow path guides each Switcher toward their current target pole
 
 Key Features
 

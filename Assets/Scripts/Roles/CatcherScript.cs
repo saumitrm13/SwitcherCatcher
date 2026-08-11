@@ -48,7 +48,15 @@ public class CatcherScript : NetworkBehaviour
     }
     private void OnEnable()
     {
-        Netcode_Functions.Instance?.ShowToastToAClientRpc(roundStartTextCatcher,thisClientRpcParams);
+        if (IsOwner)
+        {
+            catcherCanvas.SetActive(true);
+        }
+        else
+        {
+           catcherCanvas.SetActive(false);
+        }
+            Netcode_Functions.Instance?.ShowToastToAClientRpc(roundStartTextCatcher, thisClientRpcParams);
     }
 
     private void Start()
@@ -104,7 +112,7 @@ public class CatcherScript : NetworkBehaviour
 
         if (!other.gameObject.CompareTag("Switcher")) { return; }
         currentSwitcherInRange = other.gameObject;
-        if (!hasPowers.Value) { return; }
+      
         if (!IsServer) { return; }
         Debug.Log("Player caught");
 
@@ -112,6 +120,9 @@ public class CatcherScript : NetworkBehaviour
         bool isCaughtOutOfSafeZone = !caughtPlayer.GetComponent<SwitcherScript>().isInSafeZone.Value;
         if (isCaughtOutOfSafeZone)
         {
+            if (!hasPowers.Value) {
+                Netcode_Functions.Instance?.ShowToastToAClientRpc("You can't catch a switcher without powers! Get to your power source first.", thisClientRpcParams);
+                return; }
             Debug.Log("Caught out of safe zone");
             var deadPlayer = caughtPlayer.GetComponent<AnimationAndMovementControllerNetwork>();
             Debug.Log($"Dead player is : {deadPlayer.NetworkObjectId}");
@@ -290,7 +301,11 @@ public class CatcherScript : NetworkBehaviour
     {
         Debug.Log("Exited power source");
         if (!IsServer) return;
-        if (powerRechargeCoroutine != null) StopCoroutine(powerRechargeCoroutine);
+        if (powerRechargeCoroutine != null)
+        {   
+            StopCoroutine(powerRechargeCoroutine);
+            ShowRemainingCatcherPowerTimeUIClientRpc(PowerState.Drained,0, thisClientRpcParams);
+        }
         powerRechargeCoroutine = null;
         StartPowerDrainTimer();
         foreach (GameObject prefab in spawnedPrefabs)
@@ -315,18 +330,20 @@ public class CatcherScript : NetworkBehaviour
     IEnumerator PowerDrainCoroutine()
     {
         Debug.Log("Started power drain");
+        ShowRemainingCatcherPowerTimeUIClientRpc(PowerState.Draining,(int)powerDuration, thisClientRpcParams);
         yield return new WaitForSeconds(powerDuration);
         hasPowers.Value = false;
         powerDrainCoroutine = null;
         currentCatcherPowerValue.Value = 0;
         Debug.Log("Catcher has powers: " + hasPowers.Value);
         Netcode_Functions.Instance?.ShowToastToAClientRpc("You have drained your powers!!! Go to your power source and regain them.", thisClientRpcParams);
+        
     }
 
     IEnumerator PowerRechargeCoroutine()
     {
         if (powerDrainCoroutine != null) StopCoroutine(powerDrainCoroutine);
-
+        ShowRemainingCatcherPowerTimeUIClientRpc(PowerState.Recharging,0, thisClientRpcParams);
         while (currentCatcherPowerValue.Value < 5)
         {
             yield return null;
@@ -335,6 +352,7 @@ public class CatcherScript : NetworkBehaviour
         //yield return new WaitForSeconds(powerRechargeDuration);
         hasPowers.Value = true;
         powerRechargeCoroutine = null;
+      ShowRemainingCatcherPowerTimeUIClientRpc(PowerState.Recharged,0, thisClientRpcParams);
         Debug.Log("Catcher has powers: " + hasPowers.Value);
     }
 
@@ -363,7 +381,16 @@ public class CatcherScript : NetworkBehaviour
 
     }
 
-    
-    
+    [ClientRpc]
+    void ShowRemainingCatcherPowerTimeUIClientRpc(PowerState state,int remainingTime = 0, ClientRpcParams clientRpcParams = default)
+    {
+        if (!IsOwner) return;
+        CatcherUIScript catcherUI = catcherCanvas.GetComponent<CatcherUIScript>();
+        if (catcherUI != null)
+        {
+            catcherUI.ShowPowerDrainTimer(state,remainingTime);
+        }
+    }
+
 
 }

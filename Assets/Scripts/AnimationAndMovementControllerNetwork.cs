@@ -11,6 +11,9 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
     [SerializeField] CinemachineCamera FLCam;
     [SerializeField] AudioListener listener;
     [SerializeField] Camera cinemachineBrainCamera;
+    [SerializeField] AudioSource movementAudioSource;
+    [SerializeField] AudioClip walkingSound;
+    [SerializeField] AudioClip runningSound;
     CharacterInputs characterInputs;
     Vector2 currentMovementInput;
     Vector3 currentMovement;
@@ -43,7 +46,8 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
     //int isAttackingHash;
     float gravity = -9.8f;
     Netcode_Functions netcode_functions;
-
+    Coroutine walkingSoundCoroutine;
+    Coroutine runningSoundCoroutine;
 
     public override void OnNetworkSpawn()
     {
@@ -198,24 +202,28 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
         if (!isWalking && isMovementPressed)
         {
             animator.SetBool(isWalkingHash, true);
+            PlayOrPauseWalkingSoundServerRpc(true);
             // Mathf.Lerp(animator.GetFloat("Velocity"), 0.05f, 0.01f);
             //animator.SetFloat("Velocity", 0.05f);
         }
         else if (!isMovementPressed && isWalking)
         {
             animator.SetBool(isWalkingHash, false);
+            PlayOrPauseWalkingSoundServerRpc(false);
             //Mathf.Lerp(animator.GetFloat("Velocity"), 0f, 0.01f);
             //animator.SetFloat("Velocity", 0.0f);
         }
         if ((isMovementPressed && isRunPressed) && !isRunning)
         {
             animator.SetBool(isRunningHash, true);
+            PlayOrPauseRunningSoundServerRpc(true);
             //Mathf.Lerp(animator.GetFloat("Velocity"), 0.3f, 0.05f);
             //animator.SetFloat("Velocity", 0.3f);
         }
         else if ((!isMovementPressed || !isRunPressed) && isRunning)
         {
             animator.SetBool(isRunningHash, false);
+            PlayOrPauseRunningSoundServerRpc(false);
             //Mathf.Lerp(animator.GetFloat("Velocity"), 0.05f, 0.05f);
             // if (isMovementPressed)
             // {
@@ -245,64 +253,137 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
         }
     }
 
-    //void handleJump()
-    //{
-    //    if (!isJumping && isJumpPressed && characterController.isGrounded)
-    //    {
-    //        isJumping = true;
-    //        animator.SetBool(isJumpingHash, true);
-    //        isJumpAnimating = true;
-    //        currentMovement.y = initialJumpVelocity * 0.5f;
-    //        currentRunMovement.y = initialJumpVelocity * 0.5f;
-    //    }
-    //    else if (isJumping && !isJumpPressed && characterController.isGrounded)
-    //    {
-    //        isJumping = false;
-    //    }
-    //}
+    [ServerRpc]
+    void PlayOrPauseRunningSoundServerRpc(bool isRunning)
+    {
+        PlayOrPauseRunningSoundClientRpc(isRunning);  
+    }
 
-    //void handleAttack()
-    //{
-    //    if (!isAttacking && !isAttackAnimating && isAttackPressed && !isRunPressed && !isJumping)
-    //    {
-    //        isAttacking = true;
-    //        animator.SetBool(isAttackingHash, true);
-    //        isAttackAnimating = true;
-    //        //Debug.Log("Attack started");
-    //        StartCoroutine(StopAttackAfterAttackDurationCoroutine());
+    [ClientRpc]
+    void PlayOrPauseRunningSoundClientRpc(bool isRunning)
+    {   
+        if(isRunning)
+        {   
+            if(runningSoundCoroutine != null)
+            {
+                StopCoroutine(runningSoundCoroutine);
+            }
+            runningSoundCoroutine = StartCoroutine(PlayRunningSoundCoroutine());
+            StopCoroutine(walkingSoundCoroutine);
+            walkingSoundCoroutine = null;   
+        }
+        else
+        {   
+            StopCoroutine(runningSoundCoroutine);
+            runningSoundCoroutine = null;
+        }
+       
+    }
+    IEnumerator PlayRunningSoundCoroutine()
+    {
+        while(true)
+        {   
+            movementAudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f); // Randomize pitch for variation
+            movementAudioSource.PlayOneShot(runningSound);
+            
+            yield return new WaitForSeconds(0.35F);
+        }
 
-    //    }
-    //    else if (!isAttacking && isAttackAnimating && !isAttackPressed)
-    //    {
-    //        animator.SetBool(isAttackingHash, false);
-    //        isAttackAnimating = false;
-    //        //Debug.Log("Attack stopped");
-    //    }
-    //}
+    }
 
-    //IEnumerator StopAttackAfterAttackDurationCoroutine()
-    //{
-    //    yield return new WaitForSeconds(AttackDuration);
-    //    isAttacking = false;
+    [ServerRpc]
+    void PlayOrPauseWalkingSoundServerRpc(bool isWalking)
+    {
+        PlayOrPauseWalkingSoundClientRpc(isWalking);
+    }
 
-    //    //Debug.Log("Attack duration ended");
-    //}
+    [ClientRpc]
+    void PlayOrPauseWalkingSoundClientRpc(bool isWalking)
+    {
+        if (isWalking)
+        {
+            if (walkingSoundCoroutine != null)
+            {
+                StopCoroutine(walkingSoundCoroutine);
+            }
+            walkingSoundCoroutine = StartCoroutine(PlayWalkingSoundCoroutine());
+            StopCoroutine(runningSoundCoroutine);
+            runningSoundCoroutine = null;
+        }
+        else
+        {
+            StopCoroutine(walkingSoundCoroutine);
+            walkingSoundCoroutine = null;
+        }
 
-    //[ServerRpc]
-    //void ThrowObstacleServerRpc(ServerRpcParams rpcParams = default)
-    //{
-    //    GameObject spawnedThrowable = Instantiate(throwablePrefab, transform);
-    //    var netObj = spawnedThrowable.GetComponent<NetworkObject>();
+    }
+    IEnumerator PlayWalkingSoundCoroutine()
+    {
+        while (true)
+        {
+            movementAudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.15f);
+            movementAudioSource.PlayOneShot(walkingSound);
+            yield return new WaitForSeconds(0.5F);
+        }
+    }
+        //void handleJump()
+        //{
+        //    if (!isJumping && isJumpPressed && characterController.isGrounded)
+        //    {
+        //        isJumping = true;
+        //        animator.SetBool(isJumpingHash, true);
+        //        isJumpAnimating = true;
+        //        currentMovement.y = initialJumpVelocity * 0.5f;
+        //        currentRunMovement.y = initialJumpVelocity * 0.5f;
+        //    }
+        //    else if (isJumping && !isJumpPressed && characterController.isGrounded)
+        //    {
+        //        isJumping = false;
+        //    }
+        //}
 
-    //    if (netObj == null)
-    //    {
-    //        Debug.Log("Network object component missing on the throwable prefab");
-    //    }
-    //    netObj.Spawn();
-    //}
+        //void handleAttack()
+        //{
+        //    if (!isAttacking && !isAttackAnimating && isAttackPressed && !isRunPressed && !isJumping)
+        //    {
+        //        isAttacking = true;
+        //        animator.SetBool(isAttackingHash, true);
+        //        isAttackAnimating = true;
+        //        //Debug.Log("Attack started");
+        //        StartCoroutine(StopAttackAfterAttackDurationCoroutine());
 
-    //  Update is called once per frame
-    void Update()
+        //    }
+        //    else if (!isAttacking && isAttackAnimating && !isAttackPressed)
+        //    {
+        //        animator.SetBool(isAttackingHash, false);
+        //        isAttackAnimating = false;
+        //        //Debug.Log("Attack stopped");
+        //    }
+        //}
+
+        //IEnumerator StopAttackAfterAttackDurationCoroutine()
+        //{
+        //    yield return new WaitForSeconds(AttackDuration);
+        //    isAttacking = false;
+
+        //    //Debug.Log("Attack duration ended");
+        //}
+
+        //[ServerRpc]
+        //void ThrowObstacleServerRpc(ServerRpcParams rpcParams = default)
+        //{
+        //    GameObject spawnedThrowable = Instantiate(throwablePrefab, transform);
+        //    var netObj = spawnedThrowable.GetComponent<NetworkObject>();
+
+        //    if (netObj == null)
+        //    {
+        //        Debug.Log("Network object component missing on the throwable prefab");
+        //    }
+        //    netObj.Spawn();
+        //}
+
+        //  Update is called once per frame
+        void Update()
     {
         if (!IsOwner)
         {

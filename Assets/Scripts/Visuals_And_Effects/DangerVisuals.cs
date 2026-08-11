@@ -183,6 +183,7 @@ public class DangerVisuals : MonoBehaviour
                 {
                     _throwableMagic.SetActive(false);
                     explosionVFX.Play();
+                    GlobalAudioEfffectsScript.Instance.dangerVisualsAudioSource.PlayOneShot(GlobalAudioEfffectsScript.Instance.miniCatcherExplodeSoundEffect);
                     ShakeCam();
                     miniCatcherOnTopOfTheTower.SetActive(showProblem);
                 }

@@ -47,7 +47,13 @@ public class SwitcherScript : NetworkBehaviour
     [SerializeField] GameObject throwableMagic;
     [SerializeField] GameObject guardAroundASwitcher;
 
-    [Header("Task Timer")]
+    [Header("Audio")]
+    [SerializeField] AudioSource poleAudioSource;
+    [SerializeField] AudioClip wrongPoleEntryAttackClip;
+    [SerializeField] AudioClip rightPoleEntryAudioClip;
+    [SerializeField] AudioClip ownedPoleEntryAudioClip;
+
+    [Header("Timers")]
     [SerializeField] float taskTimeLimit = 30f;   // seconds   tweak in Inspector
     [SerializeField] float timeGivenToGetAPole = 10f; // seconds to wait before removing guard
     [Header("Resources Visuals")]
@@ -810,12 +816,14 @@ public class SwitcherScript : NetworkBehaviour
     {
         if (successVFX != null)
             successVFX.Play();
+            poleAudioSource.PlayOneShot(ownedPoleEntryAudioClip);
     }
 
     [ClientRpc]
     void PlayResourceGainVFXClientRpc(ClientRpcParams clientRpcParams = default)
     {
         if (resourceGainVFX != null) resourceGainVFX.Play();
+        poleAudioSource.PlayOneShot(rightPoleEntryAudioClip);
         dangerVisuals.ShakeCam();
     }
 
@@ -825,7 +833,7 @@ public class SwitcherScript : NetworkBehaviour
         GetComponent<AnimationAndMovementControllerNetwork>().TakeAFall();
         if (wrongPoleEntryAttackVFX != null)
         {
-
+            poleAudioSource.PlayOneShot(wrongPoleEntryAttackClip);  
             wrongPoleEntryAttackVFX.Play();
         }
 

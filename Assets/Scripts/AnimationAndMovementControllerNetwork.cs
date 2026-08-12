@@ -286,7 +286,7 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
             movementAudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f); // Randomize pitch for variation
             movementAudioSource.PlayOneShot(runningSound);
             
-            yield return new WaitForSeconds(0.35F);
+            yield return new WaitForSeconds(0.3F);
         }
 
     }

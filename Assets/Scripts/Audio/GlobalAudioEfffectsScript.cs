@@ -7,7 +7,8 @@ public enum SoundType
     Click,
     ThrowableMagicLaunch,
     MiniCatcherExplode,
-    LobbyJoinOrCreate
+    LobbyJoinOrCreate,
+    CameraGoingUp
 }
 public class GlobalAudioEfffectsScript : MonoBehaviour
 {
@@ -19,6 +20,7 @@ public class GlobalAudioEfffectsScript : MonoBehaviour
     public AudioClip throwableMagicLaunchAudioClip;
     public AudioClip miniCatcherExplodeSoundEffect;
     public AudioClip lobbyJoinOrCreateSoundEffect;
+    public AudioClip cameraGoingUpAudioClip;
     private void Awake()
     {
         if (Instance != null) { Destroy(gameObject); return; }
@@ -65,6 +67,10 @@ public class GlobalAudioEfffectsScript : MonoBehaviour
             case SoundType.LobbyJoinOrCreate:
                 if (lobbyJoinOrCreateSoundEffect != null)
                     audioSource.PlayOneShot(lobbyJoinOrCreateSoundEffect);
+                break;
+            case SoundType.CameraGoingUp:
+                if(dangerVisualsAudioSource != null)
+                    dangerVisualsAudioSource.PlayOneShot(cameraGoingUpAudioClip);
                 break;
             default:
                 Debug.LogWarning("Unhandled sound type: " + soundType);

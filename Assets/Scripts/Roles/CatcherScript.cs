@@ -24,6 +24,10 @@ public class CatcherScript : NetworkBehaviour
     [SerializeField] float scaleDownTime;
     [SerializeField] float scaleUpTime;
     [SerializeField] Vector3 scaleDownValue;
+
+    [Header("Audio")]
+    [SerializeField] AudioSource catcherAudioSource;
+    [SerializeField] AudioClip catcherAttackAudioClip;
     List<Transform> powerPrefabSpawnTransforms = new List<Transform>();
 
     public const string roundStartTextCatcher = "You are the catcher! Try to catch all switchers before the round ends!";
@@ -247,6 +251,7 @@ public class CatcherScript : NetworkBehaviour
             movementControllerNetwork.enabled = false;
         }
         magicInCatcherHand.SetActive(true);
+        catcherAudioSource.PlayOneShot(catcherAttackAudioClip);   
         if (currentSwitcherInRange != null)
         {
             Vector3 targetPos = currentSwitcherInRange.transform.position;

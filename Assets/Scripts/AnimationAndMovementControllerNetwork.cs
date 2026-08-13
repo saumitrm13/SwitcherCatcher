@@ -269,8 +269,12 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
                 StopCoroutine(runningSoundCoroutine);
             }
             runningSoundCoroutine = StartCoroutine(PlayRunningSoundCoroutine());
-            StopCoroutine(walkingSoundCoroutine);
-            walkingSoundCoroutine = null;   
+            if(walkingSoundCoroutine != null)
+            {
+                StopCoroutine(walkingSoundCoroutine);
+                walkingSoundCoroutine = null;
+            }
+           
         }
         else
         {   
@@ -307,8 +311,12 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
                 StopCoroutine(walkingSoundCoroutine);
             }
             walkingSoundCoroutine = StartCoroutine(PlayWalkingSoundCoroutine());
-            StopCoroutine(runningSoundCoroutine);
-            runningSoundCoroutine = null;
+            if (runningSoundCoroutine != null)
+            {
+                StopCoroutine(runningSoundCoroutine);
+                runningSoundCoroutine = null;
+            }
+            
         }
         else
         {

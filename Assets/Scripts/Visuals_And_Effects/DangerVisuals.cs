@@ -198,11 +198,12 @@ public class DangerVisuals : MonoBehaviour
         }
         if (_characterFLCam != null && _originalTargetTransformForCharacterFLCam != null && showProblem)
         {
+            GlobalAudioEfffectsScript.Instance.PlaySound(SoundType.CameraGoingUp);
             miniCatcherOnTopOfTheTower.SetActive(showProblem);
             _characterFLCam.Target.TrackingTarget = transform;
             yield return new WaitForSeconds(showProblemForSeconds);
             _characterFLCam.Target.TrackingTarget = _originalTargetTransformForCharacterFLCam;
-
+            
 
         }
 

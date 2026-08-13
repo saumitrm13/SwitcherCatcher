@@ -3043,6 +3043,8 @@ MonoBehaviour:
   scaleDownTime: 0.3
   scaleUpTime: 0.5
   scaleDownValue: {x: 1.2, y: 1.2, z: 1.2}
+  catcherAudioSource: {fileID: 4417901153685732694}
+  catcherAttackAudioClip: {fileID: 8300000, guid: da286fbe58cbfd44e9cc11895ea75da7, type: 3}
 --- !u!114 &3110308216877367268
 MonoBehaviour:
   m_ObjectHideFlags: 0

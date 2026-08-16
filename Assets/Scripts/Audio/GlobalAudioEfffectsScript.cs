@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -16,16 +17,34 @@ public class GlobalAudioEfffectsScript : MonoBehaviour
 
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip clickClip;
+    [SerializeField] private AudioSource backgroundMusicAudioSource;
     public AudioSource dangerVisualsAudioSource;
     public AudioClip throwableMagicLaunchAudioClip;
     public AudioClip miniCatcherExplodeSoundEffect;
     public AudioClip lobbyJoinOrCreateSoundEffect;
     public AudioClip cameraGoingUpAudioClip;
+    public AudioClip roundMusic;
+    public AudioClip lobbyMusic;
     private void Awake()
     {
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+        GameStartManager.OnNewRoundStartedClientSignal += ChangeToRoundMusic;
+        GameStartManager.OnRoundEndedClientSignal += ChangeToLobbyMusic;
+    }
+
+    public void ChangeToLobbyMusic()
+    {
+        backgroundMusicAudioSource.clip = lobbyMusic;
+        backgroundMusicAudioSource.Play();
+    }
+
+    private void ChangeToRoundMusic()
+    {
+        backgroundMusicAudioSource.clip = roundMusic;
+        Debug.Log("Changed to round music");
+        backgroundMusicAudioSource.Play();
     }
 
     private void OnEnable()
@@ -82,5 +101,15 @@ public class GlobalAudioEfffectsScript : MonoBehaviour
     {
         if (clip != null)
             audioSource.PlayOneShot(clip);
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+            GameStartManager.OnNewRoundStartedClientSignal -= ChangeToRoundMusic;
+            GameStartManager.OnRoundEndedClientSignal -= ChangeToLobbyMusic;
+        }
     }
 }

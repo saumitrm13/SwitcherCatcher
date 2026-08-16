@@ -20,7 +20,7 @@ public class HostDisconnectWatchdog : MonoBehaviour
 {
     private static HostDisconnectWatchdog _instance;
     private bool _subscribedToCurrentSingleton;
-
+  
     public static void EnsureExists(DisconnectManager owner)
     {
         if (_instance == null)
@@ -58,7 +58,7 @@ public class HostDisconnectWatchdog : MonoBehaviour
             NetworkManager.Singleton.OnClientStopped -= OnClientStopped;
         }
         _subscribedToCurrentSingleton = false;
-
+        GlobalAudioEfffectsScript.Instance.ChangeToLobbyMusic();
         DisconnectManager.RunHostLeftLobbyDeleteThenCleanup(wasHost);
     }
 

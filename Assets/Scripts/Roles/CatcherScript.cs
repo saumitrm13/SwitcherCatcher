@@ -105,7 +105,7 @@ public class CatcherScript : NetworkBehaviour
         if (other.gameObject.CompareTag("PowerSource") && currentCatcherPowerValue.Value < 5)
         {
             Debug.Log("Collided with power source");
-            StartCoroutine(DropPowerPrefabCoroutine());
+            //StartCoroutine(DropPowerPrefabCoroutine());
             if (IsServer)
             {
                 if (powerRechargeCoroutine != null) { StopCoroutine(powerRechargeCoroutine); powerRechargeCoroutine = null; }
@@ -313,13 +313,13 @@ public class CatcherScript : NetworkBehaviour
         }
         powerRechargeCoroutine = null;
         StartPowerDrainTimer();
-        foreach (GameObject prefab in spawnedPrefabs)
-        {
-            if (prefab != null)
-            {
-                Destroy(prefab);
-            }
-        }
+        //foreach (GameObject prefab in spawnedPrefabs)
+        //{
+        //    if (prefab != null)
+        //    {
+        //        Destroy(prefab);
+        //    }
+        //}
     }
 
     public void ScaleRoutine()
@@ -342,7 +342,8 @@ public class CatcherScript : NetworkBehaviour
         currentCatcherPowerValue.Value = 0;
         Debug.Log("Catcher has powers: " + hasPowers.Value);
         Netcode_Functions.Instance?.ShowToastToAClientRpc("You have drained your powers!!! Go to your power source and regain them.", thisClientRpcParams);
-        
+        DropPowerSourcesClientRpc();
+
     }
 
     IEnumerator PowerRechargeCoroutine()
@@ -359,6 +360,13 @@ public class CatcherScript : NetworkBehaviour
         powerRechargeCoroutine = null;
       ShowRemainingCatcherPowerTimeUIClientRpc(PowerState.Recharged,0, thisClientRpcParams);
         Debug.Log("Catcher has powers: " + hasPowers.Value);
+    }
+
+
+    [ClientRpc]
+    void DropPowerSourcesClientRpc()
+    {
+        StartCoroutine(DropPowerPrefabCoroutine());
     }
 
     IEnumerator DropPowerPrefabCoroutine()

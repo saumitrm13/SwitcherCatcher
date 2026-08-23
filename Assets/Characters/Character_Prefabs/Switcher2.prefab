@@ -2880,6 +2880,12 @@ MonoBehaviour:
   movementAudioSource: {fileID: 4344608270203566419}
   walkingSound: {fileID: 8300000, guid: 6d499f270fc0b3344a11a384751c934d, type: 3}
   runningSound: {fileID: 8300000, guid: a80c3bf45f16a2d4383761e2aa7c2fb1, type: 3}
+  walkingSounds:
+  - {fileID: 8300000, guid: 6d499f270fc0b3344a11a384751c934d, type: 3}
+  - {fileID: 8300000, guid: 2ce41a81e66b17545b4e04262328c5f8, type: 3}
+  runningSounds:
+  - {fileID: 8300000, guid: a80c3bf45f16a2d4383761e2aa7c2fb1, type: 3}
+  - {fileID: 8300000, guid: 43bd08e37682cc74f886353f715aa8cb, type: 3}
   rotationFactorPerFrame: 15
   movementSpeed: 3
   maxJumpTime: 2

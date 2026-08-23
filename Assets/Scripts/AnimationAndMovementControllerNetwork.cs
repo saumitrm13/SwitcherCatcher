@@ -12,8 +12,12 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
     [SerializeField] AudioListener listener;
     [SerializeField] Camera cinemachineBrainCamera;
     [SerializeField] AudioSource movementAudioSource;
-    [SerializeField] AudioClip walkingSound;
-    [SerializeField] AudioClip runningSound;
+    
+    [SerializeField] AudioClip[] walkingSounds;
+    [SerializeField] AudioClip[] runningSounds;
+
+    bool playFirstWalkingSound = true;  
+    bool playFirstRunningSound = true;
     CharacterInputs characterInputs;
     Vector2 currentMovementInput;
     Vector3 currentMovement;
@@ -286,9 +290,18 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
     IEnumerator PlayRunningSoundCoroutine()
     {
         while(true)
-        {   
-            movementAudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f); // Randomize pitch for variation
-            movementAudioSource.PlayOneShot(runningSound);
+        {
+            movementAudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
+            if (playFirstRunningSound)
+            {
+                movementAudioSource.PlayOneShot(runningSounds[0]);
+            }
+            else
+            {
+                movementAudioSource.PlayOneShot(runningSounds[1]);
+            }
+            playFirstRunningSound = !playFirstRunningSound; // Toggle for next iteration
+            
             
             yield return new WaitForSeconds(0.3F);
         }
@@ -329,9 +342,22 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
     {
         while (true)
         {
-            movementAudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.15f);
-            movementAudioSource.PlayOneShot(walkingSound);
-            yield return new WaitForSeconds(0.5F);
+            while (true)
+            {
+                movementAudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
+                if (playFirstWalkingSound)
+                {
+                    movementAudioSource.PlayOneShot(walkingSounds[0]);
+                }
+                else
+                {
+                    movementAudioSource.PlayOneShot(walkingSounds[1]);
+                }
+                playFirstWalkingSound = !playFirstWalkingSound; // Toggle for next iteration
+
+
+                yield return new WaitForSeconds(0.55F);
+            }
         }
     }
         //void handleJump()

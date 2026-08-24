@@ -66,18 +66,7 @@ public class LobbyCanvasFunction : MonoBehaviour
 
         if (!AuthenticationService.Instance.IsSignedIn)
         {
-            try
-            {
-                await AuthenticationService.Instance.SignInAnonymouslyAsync();
-                Debug.Log($"Player signed in anonymously | PlayerId: {AuthenticationService.Instance.PlayerId}");
-                if (nameErrorText != null) nameErrorText.text = "";
-
-
-            }
-            catch (Exception e)
-            {
-                Debug.LogError("Failed to sign in anonymously: " + e.Message);
-            }
+            TrySignInAnonymously();
         }
         else
         {
@@ -85,6 +74,53 @@ public class LobbyCanvasFunction : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Attempts anonymous sign-in, but only once internet connectivity is
+    /// confirmed. If offline right now, this schedules the sign-in attempt
+    /// to fire automatically the moment InternetConnectivityChecker detects
+    /// we're back online — no manual retry needed.
+    /// </summary>
+    private void TrySignInAnonymously()
+    {
+        if (InternetConnectivityChecker.Instance == null)
+        {
+            // Safety net: if the checker isn't in the scene for some reason,
+            // don't silently block sign-in forever — just attempt it directly.
+            Debug.LogWarning("[LobbyCanvasFunction] InternetConnectivityChecker not found in scene; attempting sign-in without a connectivity gate.");
+            _ = SignInAnonymouslyAsync();
+            return;
+        }
+
+        if (!InternetConnectivityChecker.Instance.IsInternetAvailable)
+        {
+            Debug.Log("[LobbyCanvasFunction] No internet detected — deferring anonymous sign-in until connectivity is restored.");
+            if (nameErrorText != null) nameErrorText.text = "Waiting for internet connection...";
+
+            InternetConnectivityChecker.Instance.RunWhenOnline(() =>
+            {
+                Debug.Log("[LobbyCanvasFunction] Internet restored — retrying anonymous sign-in.");
+                if (nameErrorText != null) nameErrorText.text = "";
+                _ = SignInAnonymouslyAsync();
+            });
+            return;
+        }
+
+        _ = SignInAnonymouslyAsync();
+    }
+
+    private async Task SignInAnonymouslyAsync()
+    {
+        try
+        {
+            await AuthenticationService.Instance.SignInAnonymouslyAsync();
+            Debug.Log($"Player signed in anonymously | PlayerId: {AuthenticationService.Instance.PlayerId}");
+            if (nameErrorText != null) nameErrorText.text = "";
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Failed to sign in anonymously: " + e.Message);
+        }
+    }
     private void Start()
     {
         LoadSavedPlayerName();
@@ -271,7 +307,8 @@ public class LobbyCanvasFunction : MonoBehaviour
             Debug.LogError("Failed to create lobby: " + e.Message);
 
             LoadingProgress.FailFlow("Failed to create lobby");
-            debugText.text = e.Message;
+
+            ToastScript.Toast("Lobby creation failed ! Check your internet or restart the game");
         }
     }
 
@@ -283,6 +320,7 @@ public class LobbyCanvasFunction : MonoBehaviour
         if (lobbyJoinCodeInputField == null || string.IsNullOrEmpty(lobbyJoinCodeInputField.text))
         {
             Debug.LogError("Lobby join code input field is not assigned or empty");
+            ToastScript.Toast("Lobby join code is required");
             return;
         }
 

@@ -191,11 +191,7 @@ public class LobbyFeatures : MonoBehaviour
     private void HandleLobbyGone(string message)
     {
         StopHeartbeat();
-        if (debugText != null) debugText.text = message;
-        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
-        {
-            NetworkManager.Singleton.Shutdown();
-        }
+        ToastScript.Toast($"⚠ {message}");
         lobbyFunctions?.ActivatePanel(FirstPanel);
     }
 
@@ -309,11 +305,15 @@ public class LobbyFeatures : MonoBehaviour
 
     async void KickOutPlayerAsync(string playerId)
     {
-        if (!IsHost()) { debugText.text = "Only host can kick players out"; return; }
+        if (!IsHost()) 
+        { 
+            ToastScript.Toast("⚠ Only the host can kick players");
+            return; 
+        }
         try
         {
             await LobbyService.Instance.RemovePlayerAsync(currentLobby.Id, playerId);
-            debugText.text = "Kicked out player";
+            ToastScript.Toast("✓ Player kicked out");
         }
         catch (LobbyServiceException e)
         {

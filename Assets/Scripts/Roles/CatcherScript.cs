@@ -47,9 +47,25 @@ public class CatcherScript : NetworkBehaviour
     {
         catcher = new Catcher();
         magicLocalPosition = magicInCatcherHand.transform.localPosition;
-
+        GameStartManager.OnRoundEnded += HandleRoundEnd;    
 
     }
+
+    private void HandleRoundEnd()
+    {
+        if(powerDrainCoroutine != null) { StopCoroutine(powerDrainCoroutine); powerDrainCoroutine = null; }
+        if(powerRechargeCoroutine != null) { StopCoroutine(powerRechargeCoroutine); powerRechargeCoroutine = null; }   
+        foreach(Transform t in powerPrefabSpawnTransforms)
+        {
+            Destroy(t.gameObject);
+        }
+    }
+    
+    private void OnDestroy()
+    {
+        GameStartManager.OnRoundEnded -= HandleRoundEnd;
+    }
+
     private void OnEnable()
     {
         if (IsOwner)

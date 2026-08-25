@@ -28,6 +28,8 @@ public class InternetConnectivityChecker : MonoBehaviour
     [Tooltip("URL used to verify real internet access. Should be small, fast, and reliable.")]
     [SerializeField] private string pingUrl = "https://clients3.google.com/generate_204";
 
+    [SerializeField] private GameObject InternetConnectionCanvas;
+
     // Start optimistic-but-cheap: seeded from Application.internetReachability
     // synchronously in Awake() (see below) rather than defaulting blindly to
     // true, so anything that checks IsInternetAvailable on the very first
@@ -113,10 +115,12 @@ public class InternetConnectivityChecker : MonoBehaviour
         if (isOnline)
         {
             Debug.Log("[InternetConnectivityChecker] Internet is available.");
+            InternetConnectionCanvas.SetActive(false);
         }
         else
         {
             Debug.Log("[InternetConnectivityChecker] Internet is NOT available.");
+            InternetConnectionCanvas.SetActive(true);
         }
 
         if (changed)

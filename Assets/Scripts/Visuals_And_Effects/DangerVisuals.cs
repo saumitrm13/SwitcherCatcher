@@ -225,7 +225,7 @@ public class DangerVisuals : MonoBehaviour
         _shakeController.TriggerShake();
     }
 
-    void ResetDangerVisuals()
+    public void ResetDangerVisuals()
     {
         StartCoroutine(ResetDangerVisualsCoroutine());
     }

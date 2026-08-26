@@ -15,7 +15,7 @@ public class PoleExplosionEffect : MonoBehaviour
     [SerializeField] Animator thisPoleAnimator;
     MeshRenderer meshRenderer;
     GameObject currentCubeStack;
-
+    DangerVisuals dangerVisuals;
 
     bool isDestroyed = false;
 
@@ -25,6 +25,7 @@ public class PoleExplosionEffect : MonoBehaviour
         StartCoroutine(ActivateCubeStackCoroutine());
         GameStartManager.OnRoundEndedClientSignal += ResetPole;
         GameStartManager.OnNewRoundStartedClientSignal += ResetPole;
+        dangerVisuals = GetComponentInChildren<DangerVisuals>();    
     }
     public void Explode()
     {
@@ -58,7 +59,7 @@ public class PoleExplosionEffect : MonoBehaviour
         yield return new WaitForSeconds(timeForPoleDestruction);
         Destroy(currentCubeStack);
         currentCubeStack = null;
-
+        dangerVisuals?.ResetDangerVisuals();
     }
 
     public void ResetPole()

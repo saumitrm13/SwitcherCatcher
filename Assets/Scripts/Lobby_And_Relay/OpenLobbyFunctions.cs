@@ -43,36 +43,72 @@ public class OpenLobbyFunctions : MonoBehaviour
             };
 
             ToastScript.Toast("Joining lobby...");
+            const int totalSteps = 6;
+            LoadingProgress.StartFlow("Joining lobby", totalSteps);
+            Lobby currentLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId, options);
+            LobbyFeatures.SetCurrentLobby(currentLobby);
+            LoadingProgress.SetStep(1, totalSteps, $"Joining lobby");
 
-            Lobby joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId, options);
-            LobbyFeatures.SetCurrentLobby(joinedLobby);
-
-            // ── Join relay using code from lobby data ──
-            if (joinedLobby.Data != null && joinedLobby.Data.ContainsKey("RelayJoinCode"))
+            bool gameStarted = false;
+            if (currentLobby.Data != null &&
+                currentLobby.Data.TryGetValue("GameStarted", out DataObject gameStartedData))
             {
-                string relayJoinCode = joinedLobby.Data["RelayJoinCode"].Value;
+                bool.TryParse(gameStartedData.Value, out gameStarted);
+            }
+
+            if (gameStarted)
+            {
+                Debug.Log("[Client] Cannot join. Game has already started.");
+
+                await LobbyService.Instance.RemovePlayerAsync(
+                    currentLobby.Id,
+                    AuthenticationService.Instance.PlayerId);
+
+                LobbyFeatures.SetCurrentLobby(null);
+                currentLobby = null;
+
+                debugText.text = "Game has already started.";
+                LoadingProgress.FailFlow("This lobby's game has already started.");
+
+                return;
+            }
+
+            LoadingProgress.SetStep(2, totalSteps, "Lobby validated");
+            // ── Join relay using code from lobby data ──
+            if (currentLobby.Data != null && currentLobby.Data.ContainsKey("RelayJoinCode"))
+            {   
+
+                string relayJoinCode = currentLobby.Data["RelayJoinCode"].Value;
                 Debug.Log("[Client] Relay code found, joining relay...");
 
                 GameSessionData.Instance.IsRelayHost = false;
                 await RelayManager.JoinRelay(relayJoinCode);
+                LoadingProgress.SetStep(3, totalSteps, "Connected to relay");
 
+                await LobbyFeatures.EnsureNetworkManagerShutdownComplete();
+
+                LoadingProgress.SetStep(4, totalSteps, "Network ready");
                 // Hide lobby UI and activate game session
-                var lobbyDataContainer = GameObject.FindGameObjectWithTag("LobbyDataContainer");
-                var gameSessionObjects = GameObject.FindGameObjectWithTag("GameSessionObjects");
+                //var lobbyDataContainer = GameObject.FindGameObjectWithTag("LobbyDataContainer");
+                //var gameSessionObjects = GameObject.FindGameObjectWithTag("GameSessionObjects");
 
-                if (lobbyDataContainer != null)
-                    lobbyDataContainer.SetActive(false);
-                if (gameSessionObjects != null)
-                    gameSessionObjects.SetActive(true);
+                //if (lobbyDataContainer != null)
+                //    lobbyDataContainer.SetActive(false);
+                //if (gameSessionObjects != null)
+                //    gameSessionObjects.SetActive(true);
 
                 // Start as client
                 Debug.Log("[Client] Starting NetworkManager as client...");
                 NetworkManager.Singleton.StartClient();
+                boundariesBeforeGameStart.SetActive(true);
+
+                LoadingProgress.SetStep(5, totalSteps, "Client started");
             }
             else
             {
                 Debug.LogWarning("[Client] No relay code found in lobby data");
                 ToastScript.Toast("⚠ Lobby relay not yet initialized");
+                LoadingProgress.FailFlow("Failed to join the lobby");
                 return;
             }
 
@@ -82,11 +118,18 @@ public class OpenLobbyFunctions : MonoBehaviour
             lobbyCanvasFunction.ActivatePanel(currentLobbyInfoPanel);
             ToastScript.Toast("✓ Joined lobby!");
             Debug.Log($"[Client] Joined lobby by ID: {lobbyId}");
+            LoadingProgress.SetStep(6, totalSteps, "Subscribed to lobby events");
+            lobbyCanvasFunction.ActivatePanel(currentLobbyInfoPanel);
+
+            
+
+            LoadingProgress.FinishFlow();
         }
         catch (Exception e)
         {
             ToastScript.Toast($"❌ {e.Message}");
             Debug.LogError($"Join lobby exception: {e.Message}");
+            LoadingProgress.FailFlow("Failed to join the lobby");
         }
     }
 

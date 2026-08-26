@@ -193,7 +193,7 @@ public class SwitcherScript : NetworkBehaviour
 
             if (!thisSwitcher.OwnsAPole())
             {
-                triggerCaseText.text = $"Pole Entry Case : Doesn't own a pole";
+               // triggerCaseText.text = $"Pole Entry Case : Doesn't own a pole";
                 Debug.Log("[Switcher Script : OnTriggerEnter] Handling ownership");
                 HandlePoleOwnerShip(currentPole);
                 return;
@@ -203,7 +203,7 @@ public class SwitcherScript : NetworkBehaviour
                 Debug.Log("[Switcher Script : OnTriggerEnter] This is the owned pole...so checking resources");
                 if (hasNecessaryResource)
                 {
-                    triggerCaseText.text = $"Pole Entry Case : Owned pole with resources";
+                   // triggerCaseText.text = $"Pole Entry Case : Owned pole with resources";
                     hasNecessaryResource = false;
                     SetResourceVisualsClientRpc(false, clientRpcParams);
                     thisSwitcher.AssignTargetPole(null);
@@ -219,7 +219,7 @@ public class SwitcherScript : NetworkBehaviour
                 {
                     if (isCompletingATask.Value && thisSwitcher.getTargetPoleType() != PoleType.None)
                     {
-                        triggerCaseText.text = $"Pole Entry Case : Owned pole without resources";
+                       // triggerCaseText.text = $"Pole Entry Case : Owned pole without resources";
                         NotifyClientAboutThePoleClientRpc($"You came back...but without resources!", false, clientRpcParams);
                     }
 
@@ -334,6 +334,11 @@ public class SwitcherScript : NetworkBehaviour
         if (currentPole.HasOwner())
         {
             NotifyClientAboutThePoleClientRpc("This pole is already owned", false, clientRpcParams);
+            if(addGuardCoroutine == null)
+            {
+                isInSafeZone.Value = false;
+            }
+            
         }
         else
         {

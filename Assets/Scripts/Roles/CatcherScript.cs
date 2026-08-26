@@ -85,7 +85,7 @@ public class CatcherScript : NetworkBehaviour
         {
             hasPowers.Value = true;
             Debug.Log("Catcher has powers: " + hasPowers.Value);
-            StartPowerDrainTimer();
+           // StartPowerDrainTimer();
 
         }
         StartCoroutine(GetPowerSourceDropPointsCoroutine());

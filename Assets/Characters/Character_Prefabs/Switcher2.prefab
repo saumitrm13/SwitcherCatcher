@@ -2407,6 +2407,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 3
       objectReference: {fileID: 0}
+    - target: {fileID: -681020129550226938, guid: b8f4021f65f7ea149876b1dd62efe6b0, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: -434754596089410186, guid: b8f4021f65f7ea149876b1dd62efe6b0, type: 3}
       propertyPath: m_Layer
       value: 3
@@ -2878,8 +2882,6 @@ MonoBehaviour:
   listener: {fileID: 5417672378845712598}
   cinemachineBrainCamera: {fileID: 7052469977036121252}
   movementAudioSource: {fileID: 4344608270203566419}
-  walkingSound: {fileID: 8300000, guid: 6d499f270fc0b3344a11a384751c934d, type: 3}
-  runningSound: {fileID: 8300000, guid: a80c3bf45f16a2d4383761e2aa7c2fb1, type: 3}
   walkingSounds:
   - {fileID: 8300000, guid: 6d499f270fc0b3344a11a384751c934d, type: 3}
   - {fileID: 8300000, guid: 2ce41a81e66b17545b4e04262328c5f8, type: 3}

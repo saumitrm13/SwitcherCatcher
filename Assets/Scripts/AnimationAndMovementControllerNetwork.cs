@@ -90,6 +90,7 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
         else
         {
             FLCam.Priority = 0;
+            FLCam.enabled = false;  
         }
 
         base.OnNetworkSpawn();

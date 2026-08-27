@@ -155,6 +155,7 @@ public class GameStartManager : NetworkBehaviour
     /// </summary>
     private void NewRoundRoutine()
     {
+        
         if (!NetworkManager.Singleton.IsServer) return;
 
         Debug.Log($"[GameStartManager] NewRoundRoutine() — round {GameSessionData.Instance.RoundNumber}.");
@@ -173,19 +174,7 @@ public class GameStartManager : NetworkBehaviour
         // ── 2. Reset every SwitcherScript's server-side state ─────────────────
         setUpAllSwitchersForNewRound();
 
-        // ── 3. Teleport every player NetworkObject back to the origin ──────────
-        // (Already covers the catcher too — ConnectedClients includes everyone.)
-        foreach (var kvp in NetworkManager.Singleton.ConnectedClients)
-        {
-            NetworkObject playerObj = kvp.Value.PlayerObject;
-            if (playerObj != null)
-            {
-                var cc = playerObj.GetComponent<CharacterController>();
-                if (cc != null) cc.enabled = false;
-                playerObj.transform.position = new Vector3(0, 0.4580349f, 0);
-                if (cc != null) cc.enabled = true;
-            }
-        }
+        
         Debug.Log("[GameStartManager] Teleported all players to Vector3.zero.");
 
         // ── 4. Broadcast to all clients for local cleanup + fire the event ─────
@@ -233,7 +222,24 @@ public class GameStartManager : NetworkBehaviour
 
         // Fire the global new-round event so any listener (UI, VFX, audio…) can react
         GameSessionData.RaiseNewRoundStarted();
+        // ── 3. Teleport every player NetworkObject back to the origin ──────────
+        // (Already covers the catcher too — ConnectedClients includes everyone.)
+        foreach (var kvp in NetworkManager.Singleton.ConnectedClients)
+        {
 
+            NetworkObject playerObj = kvp.Value.PlayerObject;
+            if (!playerObj.IsOwner)
+            {
+                return;
+            }
+            if (playerObj != null)
+            {
+                var cc = playerObj.GetComponent<CharacterController>();
+                if (cc != null) cc.enabled = false;
+                playerObj.transform.position = new Vector3(0, 0.4580349f, 0);
+                if (cc != null) cc.enabled = true;
+            }
+        }
         Debug.Log($"[GameStartManager] New round started (round {GameSessionData.Instance.RoundNumber}). OnNewRoundStarted fired.");
     }
 

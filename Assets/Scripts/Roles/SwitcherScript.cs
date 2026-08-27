@@ -154,18 +154,7 @@ public class SwitcherScript : NetworkBehaviour
     }
 
 
-    void Update()
-    {
-        //if (IsOwner)
-        //{
-        //    if (isEligibleToStealNet.Value && Input.GetKeyDown(KeyCode.V) && !isStealingNow)
-        //    {   
-
-        //        isStealingNow = true;
-        //        StartCoroutine(StartStealing());
-        //    }
-        //}
-    }
+   
 
     public void GetAllPoles()
     {

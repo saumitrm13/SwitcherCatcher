@@ -42,6 +42,7 @@ public class CatcherScript : NetworkBehaviour
     public static GameObject localOwnerInstance;
 
     private bool transitionig = false;
+    bool cancelPowerDrain = false;  
 
     private void Awake()
     {
@@ -56,7 +57,7 @@ public class CatcherScript : NetworkBehaviour
     private void HandleNewRoundStart()
     {
         if (IsServer)
-        {
+        {   
             hasPowers.Value = true;
             Debug.Log("Catcher has powers: " + hasPowers.Value);
             if(powerRechargeCoroutine != null) { StopCoroutine(powerRechargeCoroutine); powerRechargeCoroutine = null; }
@@ -136,10 +137,12 @@ public class CatcherScript : NetworkBehaviour
             {
                 ShowRemainingCatcherPowerTimeUIClientRpc(PowerState.Recharging, 0, thisClientRpcParams);
             }
-            //else
-            //{
-            //    ShowRemainingCatcherPowerTimeUIClientRpc(PowerState.Recharged, 0, thisClientRpcParams);
-            //}
+            else
+            {   
+                if(powerDrainCoroutine != null) { StopCoroutine(powerDrainCoroutine); powerDrainCoroutine = null; }
+                cancelPowerDrain = true;
+                ShowRemainingCatcherPowerTimeUIClientRpc(PowerState.Recharged, 0, thisClientRpcParams);
+            }
         }
 
         if (!other.gameObject.CompareTag("Switcher")) { return; }
@@ -184,9 +187,13 @@ public class CatcherScript : NetworkBehaviour
             {
                 ShowRemainingCatcherPowerTimeUIClientRpc(PowerState.Drained, (int)powerDuration, thisClientRpcParams);
                 return;
+            }else if (cancelPowerDrain)
+            {
+                StartPowerDrain();
+                cancelPowerDrain = false;
             }
-            //StartPowerDrain();
-            return;
+                //StartPowerDrain();
+                return;
         }
     }
 

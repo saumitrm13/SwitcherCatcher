@@ -283,8 +283,12 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
         }
         else
         {   
-            StopCoroutine(runningSoundCoroutine);
-            runningSoundCoroutine = null;
+            if(runningSoundCoroutine != null)
+            {
+                StopCoroutine(runningSoundCoroutine);
+                runningSoundCoroutine = null;
+            }
+            
         }
        
     }
@@ -292,7 +296,7 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
     {
         while(true)
         {
-            movementAudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
+            movementAudioSource.pitch = UnityEngine.Random.Range(0.75f, 1.1f);
             if (playFirstRunningSound)
             {
                 movementAudioSource.PlayOneShot(runningSounds[0]);
@@ -326,7 +330,7 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
             }
             walkingSoundCoroutine = StartCoroutine(PlayWalkingSoundCoroutine());
             if (runningSoundCoroutine != null)
-            {
+            {   
                 StopCoroutine(runningSoundCoroutine);
                 runningSoundCoroutine = null;
             }
@@ -334,8 +338,12 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
         }
         else
         {
-            StopCoroutine(walkingSoundCoroutine);
-            walkingSoundCoroutine = null;
+            if (walkingSoundCoroutine != null)
+            {
+                StopCoroutine(walkingSoundCoroutine);
+                walkingSoundCoroutine = null;
+            }
+           
         }
 
     }
@@ -345,7 +353,7 @@ public class AnimationAndMovementControllerNetwork : NetworkBehaviour
         {
             while (true)
             {
-                movementAudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
+                movementAudioSource.pitch = UnityEngine.Random.Range(0.75f, 1.1f);
                 if (playFirstWalkingSound)
                 {
                     movementAudioSource.PlayOneShot(walkingSounds[0]);

@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 
 using TMPro;
 
@@ -31,6 +31,10 @@ public class CatcherUIScript : MonoBehaviour
 
     Coroutine powerDrainUICoroutine;
 
+    // ── Pending-state cache for when ShowPowerDrainTimer is called while inactive ──
+    bool hasPendingState = false;
+    PowerState pendingState;
+    int pendingRemainingTime;
 
     private void OnEnable()
 
@@ -39,6 +43,13 @@ public class CatcherUIScript : MonoBehaviour
         GameStartManager.OnRoundEndedClientSignal += OnRoundEnded;
 
         GameStartManager.OnNewRoundStartedClientSignal += OnRoundStarted;
+
+        // Replay whatever call came in while this object was inactive.
+        if (hasPendingState)
+        {
+            hasPendingState = false;
+            ShowPowerDrainTimer(pendingState, pendingRemainingTime);
+        }
 
     }
 
@@ -49,6 +60,13 @@ public class CatcherUIScript : MonoBehaviour
         GameStartManager.OnRoundEndedClientSignal -= OnRoundEnded;
 
         GameStartManager.OnNewRoundStartedClientSignal -= OnRoundStarted;
+
+        // Any in-flight coroutine is dead the moment this object is disabled.
+        if (powerDrainUICoroutine != null)
+        {
+            StopCoroutine(powerDrainUICoroutine);
+            powerDrainUICoroutine = null;
+        }
 
     }
 
@@ -93,7 +111,18 @@ public class CatcherUIScript : MonoBehaviour
     public void ShowPowerDrainTimer(PowerState state, int remainingTime = 0)
 
     {
-        Debug.LogWarning($"ShowPowerDrainTimer called with state: {state} and remainingTime: {remainingTime}"); 
+        // If this object (or a parent) is currently inactive, StartCoroutine will
+        // throw. Cache the call and replay it from OnEnable once it's safe.
+        if (!gameObject.activeInHierarchy)
+        {
+            hasPendingState = true;
+            pendingState = state;
+            pendingRemainingTime = remainingTime;
+            Debug.LogWarning($"[CatcherUIScript] ShowPowerDrainTimer called while inactive; caching state {state} to replay on enable.");
+            return;
+        }
+
+        Debug.LogWarning($"ShowPowerDrainTimer called with state: {state} and remainingTime: {remainingTime}");
         switch (state)
 
         {
@@ -190,4 +219,3 @@ public class CatcherUIScript : MonoBehaviour
 
 
 }
-
